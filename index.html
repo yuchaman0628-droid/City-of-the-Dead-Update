@@ -1,999 +1,119 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>死の市 - Crimson Edition</title>
-  <style>
-    * { box-sizing: border-box; }
-    html, body {
-      width: 100%; height: 100%;
-      margin: 0; padding: 0;
-      overflow: hidden;
-      background-color: #000;
-      font-family: 'Courier New', Courier, serif, monospace;
-      user-select: none;
-    }
-
-    #canvas-container { width: 100vw; height: 100vh; display: block; position: absolute; top: 0; left: 0; z-index: 1; }
-
-    #vhs-overlay {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      pointer-events: none;
-      background: repeating-linear-gradient(0deg, rgba(0,0,0,0.08), rgba(0,0,0,0.08) 1px, transparent 1px, transparent 2px);
-      box-shadow: inset 0 0 120px rgba(0,0,0,0.85);
-      z-index: 10;
-    }
-
-    #jumpscare-overlay {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: radial-gradient(circle, rgba(200,0,0,0.95) 0%, rgba(0,0,0,1) 80%);
-      display: none; justify-content: center; align-items: center;
-      flex-direction: column; z-index: 60;
-    }
-    .jumpscare-face {
-      font-size: 160px; text-shadow: 0 0 60px #f00, 0 0 120px #ff0000;
-      animation: scareZoom 0.1s infinite alternate;
-    }
-    @keyframes scareZoom {
-      0% { transform: scale(1) rotate(-5deg); }
-      100% { transform: scale(1.4) rotate(5deg); }
-    }
-
-    #crosshair {
-      position: absolute; top: 50%; left: 50%; width: 6px; height: 6px;
-      background-color: rgba(255, 255, 255, 0.8); border-radius: 50%;
-      transform: translate(-50%, -50%); z-index: 20; display: none; pointer-events: none;
-    }
-
-    #ui {
-      position: absolute; top: 20px; left: 20px; color: #ddd;
-      z-index: 20; font-size: 12px; letter-spacing: 2px; display: none; pointer-events: none;
-    }
-
-    .hud-box {
-      background: rgba(0, 0, 0, 0.85); padding: 10px 14px;
-      border: 1px solid #444; border-left: 4px solid #b30000; margin-bottom: 8px;
-    }
-
-    .bar-bg { width: 140px; height: 6px; background: #222; border: 1px solid #555; margin-top: 4px; }
-    .bar-fill { width: 100%; height: 100%; transition: width 0.1s linear; }
-    #stamina-bar { background: #00b359; }
-    #battery-bar { background: #0088ff; }
-
-    #interact-prompt {
-      position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%);
-      color: #ffcc00; font-size: 16px; font-weight: bold; letter-spacing: 2px;
-      background: rgba(0, 0, 0, 0.7); padding: 6px 16px; border: 1px solid #ffcc00;
-      border-radius: 4px; display: none; z-index: 20; pointer-events: none;
-    }
-
-    #minimap-container {
-      position: absolute; bottom: 20px; right: 20px; width: 160px; height: 160px;
-      background: rgba(5, 5, 10, 0.9); border: 2px solid #666; border-radius: 50%;
-      z-index: 25; display: none; box-shadow: 0 0 20px rgba(0,0,0,0.9); overflow: hidden;
-    }
-    #minimap-canvas { width: 100%; height: 100%; }
-
-    #chance-screen {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(5, 2, 10, 0.94); display: none; flex-direction: column;
-      justify-content: center; align-items: center; z-index: 45; color: #fff;
-    }
-    .chance-title { font-size: 36px; color: #ffcc00; letter-spacing: 6px; margin-bottom: 10px; text-shadow: 0 0 20px #ffcc00; }
-    .box-container { display: flex; gap: 20px; }
-    .chest-card {
-      width: 120px; height: 160px; background: radial-gradient(circle, #2a2015 0%, #110b05 100%);
-      border: 2px solid #aa8833; border-radius: 8px; display: flex; flex-direction: column;
-      justify-content: center; align-items: center; cursor: pointer; transition: all 0.3s;
-    }
-    .chest-card:hover { transform: translateY(-8px) scale(1.05); border-color: #ffdd66; box-shadow: 0 0 20px #ffcc00; }
-
-    #pause-menu, #title-screen, #gameover-overlay, #clear-overlay {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      display: flex; flex-direction: column; justify-content: center; align-items: center; color: #eee;
-    }
-    #pause-menu { background: rgba(0, 0, 0, 0.88); z-index: 40; display: none; }
-    
-    .settings-panel {
-      background: rgba(20, 20, 20, 0.8);
-      border: 1px solid #444;
-      border-top: 3px solid #b30000;
-      padding: 20px 30px;
-      border-radius: 6px;
-      margin: 15px 0 25px 0;
-      width: 320px;
-    }
-    .setting-item {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-bottom: 16px;
-      font-size: 13px;
-      letter-spacing: 1px;
-    }
-    .setting-item:last-child { margin-bottom: 0; }
-    .setting-label { display: flex; justify-content: space-between; color: #aaa; }
-    .setting-label span { color: #ffcc00; font-weight: bold; }
-    .setting-slider {
-      width: 100%;
-      accent-color: #b30000;
-      cursor: pointer;
-    }
-
-    #title-screen { background: radial-gradient(circle, rgba(25, 2, 2, 0.98) 0%, rgba(0,0,0,1) 100%); z-index: 30; }
-    #gameover-overlay { background-color: rgba(30, 0, 0, 0.98); display: none; z-index: 50; }
-    #clear-overlay { background-color: rgba(0, 20, 10, 0.95); display: none; z-index: 50; }
-
-    .btn-action {
-      background: transparent; border: 1px solid #666; color: #ddd;
-      padding: 12px 36px; font-size: 16px; font-family: inherit; letter-spacing: 3px; cursor: pointer; transition: all 0.3s; margin-top: 10px;
-    }
-    .btn-action:hover { background: #800000; color: #fff; border-color: #f00; box-shadow: 0 0 15px #f00; }
-
-    .diff-selector { display: flex; gap: 15px; margin: 15px 0; }
-    .diff-btn { background: #222; border: 1px solid #555; color: #aaa; padding: 6px 16px; cursor: pointer; font-size: 12px; }
-    .diff-btn.active { border-color: #ffcc00; color: #ffcc00; font-weight: bold; background: #332a00; }
-
-    #message-log {
-      position: absolute; bottom: 40px; width: 100%; text-align: center;
-      color: #ff3333; font-size: 18px; font-weight: bold; letter-spacing: 2px;
-      z-index: 20; pointer-events: none; opacity: 0; transition: opacity 0.4s;
-    }
-  </style>
-  <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Game Spawn Fix</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+    </style>
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
 </head>
 <body>
 
-  <div id="vhs-overlay"></div>
-  <div id="crosshair"></div>
-  <div id="interact-prompt">[E] アイテムを拾う</div>
-
-  <div id="jumpscare-overlay">
-    <div class="jumpscare-face">💀</div>
-    <div style="color:#ff0000; font-size:24px; font-weight:bold; letter-spacing:6px; margin-top:20px;">捕 獲</div>
-  </div>
-
-  <div id="ui">
-    <div class="hud-box">
-      <div>『死の市』 <span id="level-display" style="color:#00ff88;">LEVEL 1</span></div>
-      <div style="margin-top:2px;">鍵: <span id="key-count" style="color:#ffcc00; font-weight:bold;">0 / 5</span></div>
-      <div>爆竹 [F]: <span id="firecracker-count" style="color:#ff3333; font-weight:bold;">0</span> 個</div>
-      <div>TIME: <span id="timer-display">00:00</span></div>
-    </div>
-    <div class="hud-box">
-      <div>STAMINA</div>
-      <div class="bar-bg"><div id="stamina-bar" class="bar-fill"></div></div>
-      <div style="margin-top:4px;">BATTERY</div>
-      <div class="bar-bg"><div id="battery-bar" class="bar-fill"></div></div>
-    </div>
-    <div style="font-size:10px; color:#aaa;">[E] 拾う/脱出 | [F] 爆竹 | [Esc] ポーズ</div>
-  </div>
-
-  <div id="minimap-container"><canvas id="minimap-canvas" width="160" height="160"></canvas></div>
-
-  <div id="chance-screen">
-    <div class="chance-title">✨ CHANCE TIME ✨</div>
-    <div style="margin-bottom:20px; color:#aaa;">運命の宝箱を選べ...</div>
-    <div class="box-container">
-      <div class="chest-card" onclick="selectChanceBox(0)"><div style="font-size:40px;">🎁</div><div>壱</div></div>
-      <div class="chest-card" onclick="selectChanceBox(1)"><div style="font-size:40px;">🎁</div><div>弐</div></div>
-      <div class="chest-card" onclick="selectChanceBox(2)"><div style="font-size:40px;">🎁</div><div>参</div></div>
-    </div>
-    <div id="chance-result" style="margin-top:25px; font-size:18px; color:#00ff88; min-height:25px;"></div>
-  </div>
-
-  <div id="pause-menu">
-    <div style="font-size:36px; color:#cc0000; font-weight:bold; letter-spacing:4px;">PAUSED</div>
-    
-    <div class="settings-panel">
-      <div class="setting-item">
-        <div class="setting-label">音量 (VOLUME): <span id="volume-val">50%</span></div>
-        <input type="range" id="volume-slider" class="setting-slider" min="0" max="100" value="50" oninput="updateSettings()">
-      </div>
-      <div class="setting-item">
-        <div class="setting-label">マウス感度 (SENSITIVITY): <span id="sens-val">5</span></div>
-        <input type="range" id="sens-slider" class="setting-slider" min="1" max="10" value="5" oninput="updateSettings()">
-      </div>
-    </div>
-
-    <button class="btn-action" id="resume-btn">再 開</button>
-  </div>
-
-  <div id="message-log"></div>
-
-  <div id="title-screen">
-    <div style="font-size:64px; color:#b30000; font-weight:bold; letter-spacing:10px;">死 の 市</div>
-    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- RED WORLD EDITION -</div>
-    
-    <div class="diff-selector">
-      <button class="diff-btn" onclick="setDifficulty('easy', this)">EASY</button>
-      <button class="diff-btn active" onclick="setDifficulty('normal', this)">NORMAL</button>
-      <button class="diff-btn" onclick="setDifficulty('hard', this)">HARD</button>
-    </div>
-
-    <button class="btn-action" id="start-btn">街 に 入 る</button>
-    <div style="font-size:11px; color:#777; margin-top:20px; line-height:1.6; text-align:center;">
-      [W/A/S/D] 移動 | [Shift] ダッシュ | [画面クリック] 視点操作<br>
-      鍵を5つ集めて『中央のポータル』から脱出せよ！
-    </div>
-  </div>
-
-  <div id="gameover-overlay">
-    <div style="font-size:72px; color:#f00; font-weight:bold;">S L A U G H T E R</div>
-    <div style="color:#ccc; margin-bottom:20px;">あなたの魂は闇に囚われた...</div>
-    <button class="btn-action" onclick="returnToTitle()">タイトルへ戻る</button>
-  </div>
-
-  <div id="clear-overlay">
-    <div style="font-size:54px; color:#00ff88; font-weight:bold;">STAGE CLEAR!</div>
-    <div style="margin:10px 0; color:#eee;">中央の扉を抜け、LV2の『血の領域』へ進む...</div>
-    <div style="font-size:20px; color:#ffcc00;" id="clear-rank">RANK: S</div>
-    <div style="font-size:14px; color:#aaa; margin-bottom:20px;" id="clear-time-text">TIME: 00:00</div>
-    <button class="btn-action" onclick="nextLevel()">NEXT LEVEL (LV2)</button>
-  </div>
-
-  <div id="canvas-container"></div>
-
-  <script>
-    class HorrorAudio {
-      constructor() { 
-        this.ctx = null; 
-        this.masterVolume = 0.5;
-      }
-      init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
-      
-      playHeartbeat() {
-        if (!this.ctx) return;
-        const now = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'sine'; osc.frequency.setValueAtTime(55, now);
-        osc.frequency.exponentialRampToValueAtTime(10, now + 0.18);
-        
-        const vol = 0.9 * this.masterVolume;
-        gain.gain.setValueAtTime(vol, now); 
-        gain.gain.exponentialRampToValueAtTime(Math.max(0.001, vol * 0.01), now + 0.18);
-        
-        osc.connect(gain); gain.connect(this.ctx.destination);
-        osc.start(now); osc.stop(now + 0.18);
-      }
-      
-      playSE(freq, duration, type='sine') {
-        if (!this.ctx) return;
-        const now = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = type; osc.frequency.setValueAtTime(freq, now);
-        
-        const vol = 0.3 * this.masterVolume;
-        gain.gain.setValueAtTime(vol, now); 
-        gain.gain.exponentialRampToValueAtTime(Math.max(0.001, vol * 0.01), now + duration);
-        
-        osc.connect(gain); gain.connect(this.ctx.destination);
-        osc.start(now); osc.stop(now + duration);
-      }
-    }
-    const audio = new HorrorAudio();
-
-    let difficulty = 'normal';
-    let currentLevel = 1;
-    let diffParams = { speedMult: 1.0, detectMult: 1.0 };
-    let mouseSensitivity = 0.002;
-
-    function setDifficulty(diff, btn) {
-      difficulty = diff;
-      document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      if (diff === 'easy') diffParams = { speedMult: 0.75, detectMult: 0.7 };
-      if (diff === 'normal') diffParams = { speedMult: 1.0, detectMult: 1.0 };
-      if (diff === 'hard') diffParams = { speedMult: 1.35, detectMult: 1.4 };
-    }
-
-    function updateSettings() {
-      const vol = document.getElementById('volume-slider').value;
-      const sens = document.getElementById('sens-slider').value;
-
-      document.getElementById('volume-val').textContent = `${vol}%`;
-      document.getElementById('sens-val').textContent = sens;
-
-      audio.masterVolume = vol / 100;
-      mouseSensitivity = (sens / 5) * 0.002;
-    }
-
-    let playTime = 0;
-    let timerInterval = null;
-
-    const container = document.getElementById('canvas-container');
+<script>
+    // --- 1. シーン・カメラ・レンダラーの設定 ---
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x05070c);
-    scene.fog = new THREE.FogExp2(0x05070c, 0.025);
+    scene.background = new THREE.Color(0x87ceeb);
 
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 150);
-    camera.rotation.order = 'YXZ';
-
-    const player = new THREE.Object3D();
-    player.position.set(0, 1.6, 25);
-    player.add(camera);
-    scene.add(player);
-
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    container.appendChild(renderer.domElement);
+    document.body.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0x333b50, 0.9);
-    scene.add(ambientLight);
+    // --- 2. スポーン地点の修正（めり込み防止対策） ---
+    // 建物の位置が (0, 0, 0) 付近にある場合、スポーン地点を高さ方向(Y軸)やY/Z軸方向へずらします。
+    // 例: Y=5 (空中から着地させる)、Z=10 (建物の手前) に設定
+    const SPAWN_POSITION = new THREE.Vector3(0, 5, 10);
+    camera.position.copy(SPAWN_POSITION);
 
-    const moonLight = new THREE.DirectionalLight(0x445577, 0.6);
-    moonLight.position.set(20, 50, 20);
-    scene.add(moonLight);
+    // --- 3. コントロール（視点操作と移動制御） ---
+    const controls = new THREE.PointerLockControls(camera, document.body);
 
-    const flashlight = new THREE.SpotLight(0xfff5e0, 4.5, 35, Math.PI / 4, 0.3, 1);
-    camera.add(flashlight);
-    flashlight.position.set(0, 0, 0);
-    flashlight.target.position.set(0, 0, -1);
-    camera.add(flashlight.target);
+    document.addEventListener('click', () => {
+        controls.lock();
+    });
 
-    const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(200, 200),
-      new THREE.MeshStandardMaterial({ color: 0x15181c, roughness: 0.8 })
-    );
+    const moveState = { forward: false, backward: false, left: false, right: false };
+    const velocity = new THREE.Vector3();
+    const direction = new THREE.Vector3();
+    let prevTime = performance.now();
+
+    // キー入力リスナー
+    window.addEventListener('keydown', (e) => {
+        switch (e.code) {
+            case 'KeyW': moveState.forward = true; break;
+            case 'KeyS': moveState.backward = true; break;
+            case 'KeyA': moveState.left = true; break;
+            case 'KeyD': moveState.right = true; break;
+        }
+    });
+
+    window.addEventListener('keyup', (e) => {
+        switch (e.code) {
+            case 'KeyW': moveState.forward = false; break;
+            case 'KeyS': moveState.backward = false; break;
+            case 'KeyA': moveState.left = false; break;
+            case 'KeyD': moveState.right = false; break;
+        }
+    });
+
+    // --- 4. 環境（地面と建物）の配置 ---
+    // 地面
+    const floorGeometry = new THREE.PlaneGeometry(100, 100);
+    const floorMaterial = new THREE.MeshBasicMaterial({ color: 0x555555 });
+    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
 
-    const MAP_LIMIT = { minX: -60, maxX: 60, minZ: -65, maxZ: 45 };
+    // 初期位置に重なっていた建物（原点付近）
+    const buildingGeometry = new THREE.BoxGeometry(4, 8, 4);
+    const buildingMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
+    const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
+    building.position.set(0, 4, 0); // 原点に配置されている建物
+    scene.add(building);
 
-    const goalGroup = new THREE.Group();
-    const portalCoreMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.6 });
-    
-    const pillarMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5 });
-    const pillarL = new THREE.Mesh(new THREE.BoxGeometry(0.6, 4, 0.6), pillarMat);
-    pillarL.position.set(-1.8, 2, 0);
-    const pillarR = new THREE.Mesh(new THREE.BoxGeometry(0.6, 4, 0.6), pillarMat);
-    pillarR.position.set(1.8, 2, 0);
-    const topBeam = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.6, 0.6), pillarMat);
-    topBeam.position.set(0, 4.1, 0);
-    
-    const portalCore = new THREE.Mesh(new THREE.PlaneGeometry(3, 3.8), portalCoreMat);
-    portalCore.position.set(0, 2, 0);
-    
-    goalGroup.add(pillarL, pillarR, topBeam, portalCore);
-    
-    const goalLight = new THREE.PointLight(0x0088ff, 2, 10);
-    goalLight.position.set(0, 2, 0);
-    goalGroup.add(goalLight);
-    
-    goalGroup.position.set(0, 0, 0);
-    scene.add(goalGroup);
-
-    const buildingColliders = [];
-    const buildingRenderData = [];
-
-    function buildCity() {
-      const bldgMat = new THREE.MeshStandardMaterial({ color: 0x1a1c24, roughness: 0.7 });
-      const roofMat = new THREE.MeshStandardMaterial({ color: 0x0f1015, roughness: 0.9 });
-      const windowMat = new THREE.MeshBasicMaterial({ color: 0xffdd88 });
-
-      for (let z = -60; z <= 35; z += 18) {
-        for (let x = -40; x <= 40; x += 22) {
-          if (Math.abs(x) < 10 && Math.abs(z) < 10) continue;
-
-          const w = 12, d = 12, h = 8 + Math.random() * 6;
-          const bldg = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bldgMat);
-          bldg.position.set(x, h/2, z);
-          scene.add(bldg);
-
-          const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 0.6, 0.4, d + 0.6), roofMat);
-          roof.position.set(x, h + 0.2, z);
-          scene.add(roof);
-
-          for (let wy = 2; wy < h - 1; wy += 2.5) {
-            for (let wx = -w/2 + 2; wx <= w/2 - 2; wx += 3) {
-              if (Math.random() > 0.4) {
-                const win = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.4), windowMat);
-                win.position.set(x + wx, wy, z + d/2 + 0.05);
-                scene.add(win);
-              }
-            }
-          }
-
-          buildingColliders.push({ minX: x - w/2 - 0.6, maxX: x + w/2 + 0.6, minZ: z - d/2 - 0.6, maxZ: z + d/2 + 0.6 });
-          buildingRenderData.push({ x, z, w, d });
-        }
-      }
-
-      const poleMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
-      const lampMat = new THREE.MeshBasicMaterial({ color: 0xffeeaa });
-      const streetLampPos = [
-        new THREE.Vector3(-8, 0, 15), new THREE.Vector3(8, 0, -15),
-        new THREE.Vector3(-15, 0, -25), new THREE.Vector3(15, 0, -45)
-      ];
-      streetLampPos.forEach(p => {
-        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 4), poleMat);
-        pole.position.set(p.x, 2, p.z);
-        scene.add(pole);
-
-        const lightBulb = new THREE.Mesh(new THREE.SphereGeometry(0.3), lampMat);
-        lightBulb.position.set(p.x, 4, p.z);
-        scene.add(lightBulb);
-
-        const pointLight = new THREE.PointLight(0xffeeaa, 1.2, 12);
-        pointLight.position.set(p.x, 3.8, p.z);
-        scene.add(pointLight);
-      });
-    }
-    buildCity();
-
-    function createKeyMesh() {
-      const group = new THREE.Group();
-      const goldMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, metalness: 0.8, roughness: 0.2 });
-
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.05, 8, 16), goldMat);
-      ring.position.y = 0.35;
-      group.add(ring);
-
-      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.5), goldMat);
-      shaft.position.y = 0.1;
-      group.add(shaft);
-
-      const bit = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.15, 0.04), goldMat);
-      bit.position.set(0.06, -0.05, 0);
-      group.add(bit);
-
-      group.rotation.x = Math.PI / 4;
-      return group;
-    }
-
-    const keys = [];
-    const keyPositions = [
-      new THREE.Vector3(-35, 0.3, -55),
-      new THREE.Vector3(35, 0.3, -45),
-      new THREE.Vector3(-15, 0.3, -20),
-      new THREE.Vector3(-25, 0.3, 15),
-      new THREE.Vector3(25, 0.3, 20)
-    ];
-
-    const batteries = [];
-    const firecrackerItems = [];
-
-    function spawnItems() {
-      keys.forEach(k => scene.remove(k.mesh));
-      keys.length = 0;
-      keyPositions.forEach(pos => {
-        const mesh = createKeyMesh();
-        mesh.position.copy(pos);
-        scene.add(mesh);
-        keys.push({ mesh, pos, collected: false });
-      });
-
-      function createBatteryMesh() {
-        const group = new THREE.Group();
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8, roughness: 0.3 });
-        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.32, 16), bodyMat);
-        body.position.y = 0.16;
-        group.add(body);
-
-        const capMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9, roughness: 0.1 });
-        const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.06, 12), capMat);
-        cap.position.y = 0.33;
-        group.add(cap);
-
-        const stripeMat = new THREE.MeshStandardMaterial({ color: 0xffaa00, metalness: 0.6, roughness: 0.4 });
-        const stripe = new THREE.Mesh(new THREE.CylinderGeometry(0.102, 0.102, 0.1, 16), stripeMat);
-        stripe.position.y = 0.22;
-        group.add(stripe);
-
-        group.rotation.z = Math.PI / 2;
-        return group;
-      }
-
-      batteries.forEach(b => scene.remove(b.mesh));
-      batteries.length = 0;
-      const batPositions = [
-        new THREE.Vector3(-6, 0.1, 12),
-        new THREE.Vector3(12, 0.1, -20),
-        new THREE.Vector3(-25, 0.1, -35),
-        new THREE.Vector3(25, 0.1, -10)
-      ];
-      batPositions.forEach(pos => {
-        const mesh = createBatteryMesh();
-        mesh.position.copy(pos); scene.add(mesh);
-        batteries.push({ mesh, pos, collected: false });
-      });
-
-      function createFirecrackerMesh() {
-        const group = new THREE.Group();
-        const redMat = new THREE.MeshStandardMaterial({ color: 0xcc1111, roughness: 0.5 });
-        const fuseMat = new THREE.MeshBasicMaterial({ color: 0xddccaa });
-        const bandMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
-
-        const offsets = [{x: -0.06, z: -0.04}, {x: 0.06, z: -0.04}, {x: 0, z: 0.06}];
-        offsets.forEach(off => {
-          const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.28, 12), redMat);
-          stick.position.set(off.x, 0.14, off.z);
-          group.add(stick);
-
-          const fuse = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.1, 8), fuseMat);
-          fuse.position.set(off.x, 0.31, off.z);
-          fuse.rotation.z = (Math.random() - 0.5) * 0.4;
-          group.add(fuse);
-        });
-
-        const band = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.05, 12), bandMat);
-        band.position.y = 0.14;
-        group.add(band);
-
-        return group;
-      }
-
-      firecrackerItems.forEach(fc => scene.remove(fc.mesh));
-      firecrackerItems.length = 0;
-      const fcPositions = [
-        new THREE.Vector3(0, 0.1, 18),
-        new THREE.Vector3(-35, 0.1, -10),
-        new THREE.Vector3(12, 0.1, -35),
-        new THREE.Vector3(35, 0.1, 10)
-      ];
-      fcPositions.forEach(pos => {
-        const mesh = createFirecrackerMesh();
-        mesh.position.copy(pos); scene.add(mesh);
-        firecrackerItems.push({ mesh, pos, collected: false });
-      });
-    }
-
-    function createScaryMonster() {
-      const group = new THREE.Group();
-
-      const bodyMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.9 });
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.1, 3.8, 8), bodyMat);
-      body.position.y = 1.9;
-      group.add(body);
-
-      const headMat = new THREE.MeshBasicMaterial({ color: 0x110000 });
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8), headMat);
-      head.position.y = 3.7;
-      head.scale.set(0.8, 1.3, 0.8);
-      group.add(head);
-
-      const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-      const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.08), eyeMat);
-      eyeL.position.set(-0.15, 3.8, 0.3);
-      const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.08), eyeMat);
-      eyeR.position.set(0.15, 3.8, 0.3);
-      group.add(eyeL); group.add(eyeR);
-
-      const monsterLight = new THREE.PointLight(0xff0000, 1.5, 6);
-      monsterLight.position.set(0, 3.5, 0);
-      group.add(monsterLight);
-
-      scene.add(group);
-      return { group, pos: group.position, isStunned: false, stunTimer: 0 };
-    }
-
-    const monsters = [ createScaryMonster(), createScaryMonster() ];
-
-    let isPlaying = false, isPaused = false, isChanceTime = false;
-    let stamina = 100, battery = 100, firecrackers = 0;
-    let isSprinting = false;
-    let keysCount = 0;
-    let revealEnemiesTimer = 0;
-    let nearbyItemAction = null;
-
-    let moveF = false, moveB = false, moveL = false, moveR = false;
-
-    // 修正: 画面クリックでポインターをキャプチャ（安全な呼び出し）
-    function requestLock() {
-      if (isPlaying && !isPaused && !isChanceTime && document.pointerLockElement !== document.body) {
-        document.body.requestPointerLock();
-      }
-    }
-    document.body.addEventListener('click', requestLock);
-
-    function triggerChanceTime() {
-      isChanceTime = true;
-      if (document.pointerLockElement) document.exitPointerLock();
-      document.getElementById('chance-result').textContent = '';
-      document.getElementById('chance-screen').style.display = 'flex';
-    }
-
-    window.selectChanceBox = function(idx) {
-      const options = [
-        { text: "🎆 爆竹を2個獲得！", act: () => { firecrackers += 2; updateUI(); } },
-        { text: "📡 敵の位置を10秒間可視化！", act: () => { revealEnemiesTimer = 10.0; } },
-        { text: "🔋 バッテリー全回復！", act: () => { battery = 100; } },
-        { text: "⚠️ ハズレ！モンスターが至近距離に！", act: () => { monsters[0].pos.set(player.position.x + 5, 0, player.position.z + 5); } }
-      ];
-      const res = options[Math.floor(Math.random() * options.length)];
-      document.getElementById('chance-result').textContent = res.text;
-      res.act();
-      setTimeout(() => {
-        document.getElementById('chance-screen').style.display = 'none';
-        isChanceTime = false;
-        requestLock();
-      }, 1500);
-    };
-
-    function showMsg(txt) {
-      const log = document.getElementById('message-log');
-      log.textContent = txt; log.style.opacity = '1';
-      setTimeout(() => { log.style.opacity = '0'; }, 2500);
-    }
-
-    function updateUI() {
-      document.getElementById('key-count').textContent = `${keysCount} / ${keyPositions.length}`;
-      document.getElementById('firecracker-count').textContent = firecrackers;
-      document.getElementById('stamina-bar').style.width = `${stamina}%`;
-      document.getElementById('battery-bar').style.width = `${battery}%`;
-      const lvlEl = document.getElementById('level-display');
-      lvlEl.textContent = `LEVEL ${currentLevel}`;
-      lvlEl.style.color = currentLevel >= 2 ? '#ff3333' : '#00ff88';
-    }
-
-    document.addEventListener('keydown', (e) => {
-      const k = e.key.toLowerCase();
-      if (k === 'w' || e.code === 'KeyW') moveF = true;
-      if (k === 's' || e.code === 'KeyS') moveB = true;
-      if (k === 'a' || e.code === 'KeyA') moveL = true;
-      if (k === 'd' || e.code === 'KeyD') moveR = true;
-      if (e.key === 'Shift' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') isSprinting = true;
-      
-      if (k === 'e' || e.code === 'KeyE') {
-        if (nearbyItemAction) {
-          nearbyItemAction();
-          nearbyItemAction = null;
-          document.getElementById('interact-prompt').style.display = 'none';
-        }
-      }
-      if (k === 'f' || e.code === 'KeyF') {
-        if (firecrackers > 0) {
-          firecrackers--;
-          updateUI();
-          showMsg("爆竹を使用！爆音で怪物たちが麻痺！");
-          audio.playSE(900, 0.5, 'sawtooth');
-          monsters.forEach(m => { m.isStunned = true; m.stunTimer = 6.0; });
-        } else {
-          showMsg("爆竹を持っていません！");
-        }
-      }
-      if (e.key === 'Escape' || e.code === 'Escape') togglePause();
-    });
-
-    document.addEventListener('keyup', (e) => {
-      const k = e.key.toLowerCase();
-      if (k === 'w' || e.code === 'KeyW') moveF = false;
-      if (k === 's' || e.code === 'KeyS') moveB = false;
-      if (k === 'a' || e.code === 'KeyA') moveL = false;
-      if (k === 'd' || e.code === 'KeyD') moveR = false;
-      if (e.key === 'Shift' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') isSprinting = false;
-    });
-
-    document.addEventListener('mousemove', (e) => {
-      if (!isPlaying || isPaused || isChanceTime) return;
-      player.rotation.y -= e.movementX * mouseSensitivity;
-      camera.rotation.x -= e.movementY * mouseSensitivity;
-      camera.rotation.x = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, camera.rotation.x));
-    });
-
-    function togglePause() {
-      if (!isPlaying || isChanceTime) return;
-      isPaused = !isPaused;
-      document.getElementById('pause-menu').style.display = isPaused ? 'flex' : 'none';
-      if (isPaused) {
-        if (document.pointerLockElement) document.exitPointerLock();
-      }
-    }
-    
-    // 再開ボタン押下時のPointerLock制限を修正
-    document.getElementById('resume-btn').onclick = () => {
-      togglePause();
-      requestLock();
-    };
-
-    function startGame() {
-      currentLevel = 1;
-      initLevel();
-      document.getElementById('title-screen').style.display = 'none';
-      document.getElementById('ui').style.display = 'block';
-      document.getElementById('minimap-container').style.display = 'block';
-      document.getElementById('crosshair').style.display = 'block';
-      audio.init();
-      requestLock();
-    }
-
-    function initLevel() {
-      isPlaying = true; isPaused = false; keysCount = 0; stamina = 100; battery = 100; playTime = 0; firecrackers = 0;
-      player.position.set(0, 1.6, 25);
-      monsters[0].pos.set(0, 0, -45);
-      monsters[1].pos.set(-20, 0, -10);
-      
-      goalLight.color.setHex(0x0088ff);
-      portalCoreMat.color.setHex(0x00ffff);
-
-      if (currentLevel >= 2) {
-        scene.background.setHex(0x220000);
-        scene.fog.color.setHex(0x330000);
-        scene.fog.density = 0.03;
-        ambientLight.color.setHex(0xff3333);
-        ambientLight.intensity = 0.8;
-        moonLight.color.setHex(0xff0000);
-        showMsg("LEVEL 2: 赤い世界へ突入... 怪物たちの速度が上昇！");
-      } else {
-        scene.background.setHex(0x05070c);
-        scene.fog.color.setHex(0x05070c);
-        scene.fog.density = 0.025;
-        ambientLight.color.setHex(0x333b50);
-        ambientLight.intensity = 0.9;
-        moonLight.color.setHex(0x445577);
-      }
-
-      spawnItems(); updateUI();
-
-      clearInterval(timerInterval);
-      timerInterval = setInterval(() => {
-        if (isPlaying && !isPaused && !isChanceTime) {
-          playTime++;
-          const m = String(Math.floor(playTime / 60)).padStart(2, '0');
-          const s = String(playTime % 60).padStart(2, '0');
-          document.getElementById('timer-display').textContent = `${m}:${s}`;
-        }
-      }, 1000);
-    }
-
-    function nextLevel() {
-      currentLevel++;
-      document.getElementById('clear-overlay').style.display = 'none';
-      initLevel();
-      requestLock();
-    }
-
-    document.getElementById('start-btn').onclick = startGame;
-
-    function returnToTitle() {
-      isPlaying = false;
-      document.getElementById('gameover-overlay').style.display = 'none';
-      document.getElementById('clear-overlay').style.display = 'none';
-      document.getElementById('jumpscare-overlay').style.display = 'none';
-      document.getElementById('title-screen').style.display = 'flex';
-      document.getElementById('ui').style.display = 'none';
-      document.getElementById('minimap-container').style.display = 'none';
-      document.getElementById('crosshair').style.display = 'none';
-      document.getElementById('interact-prompt').style.display = 'none';
-    }
-
-    function triggerJumpscare() {
-      isPlaying = false;
-      if (document.pointerLockElement) document.exitPointerLock();
-      document.getElementById('interact-prompt').style.display = 'none';
-      document.getElementById('jumpscare-overlay').style.display = 'flex';
-      audio.playSE(80, 1.5, 'sawtooth');
-      setTimeout(() => {
-        document.getElementById('jumpscare-overlay').style.display = 'none';
-        document.getElementById('gameover-overlay').style.display = 'flex';
-      }, 1300);
-    }
-
-    function triggerClear() {
-      isPlaying = false;
-      if (document.pointerLockElement) document.exitPointerLock();
-      document.getElementById('interact-prompt').style.display = 'none';
-      let rank = 'S';
-      if (playTime > 90) rank = 'A';
-      if (playTime > 150) rank = 'B';
-      document.getElementById('clear-rank').textContent = `RANK: ${rank}`;
-      document.getElementById('clear-time-text').textContent = `TIME: ${document.getElementById('timer-display').textContent}`;
-      document.getElementById('clear-overlay').style.display = 'flex';
-    }
-
-    let lastTime = performance.now();
-
+    // --- 5. メインループ（移動更新） ---
     function animate() {
-      requestAnimationFrame(animate);
-      const now = performance.now();
-      const delta = Math.min((now - lastTime) / 1000, 0.1);
-      lastTime = now;
+        requestAnimationFrame(animate);
 
-      portalCore.rotation.z += delta * 0.5;
+        const time = performance.now();
+        const delta = (time - prevTime) / 1000;
 
-      keys.forEach(k => {
-        if (!k.collected) k.mesh.rotation.y += delta * 2.0;
-      });
+        if (controls.isLocked) {
+            // 減衰処理
+            velocity.x -= velocity.x * 10.0 * delta;
+            velocity.z -= velocity.z * 10.0 * delta;
 
-      renderer.render(scene, camera);
+            direction.z = Number(moveState.forward) - Number(moveState.backward);
+            direction.x = Number(moveState.right) - Number(moveState.left);
+            direction.normalize();
 
-      if (!isPlaying || isPaused || isChanceTime) return;
+            // 移動速度の設定
+            const speed = 40.0;
+            if (moveState.forward || moveState.backward) velocity.z -= direction.z * speed * delta;
+            if (moveState.left || moveState.right) velocity.x -= direction.x * speed * delta;
 
-      if (battery > 0) {
-        battery -= delta * 0.8;
-        flashlight.intensity = (battery / 100) * 4.5;
-      } else {
-        flashlight.intensity = 0.15;
-      }
-
-      let speed = 4.8;
-      if (isSprinting && stamina > 0 && (moveF||moveB||moveL||moveR)) {
-        speed = 8.5; stamina -= delta * 25;
-      } else if (stamina < 100) {
-        stamina += delta * 15;
-      }
-
-      const moveDir = new THREE.Vector3();
-      if (moveF) moveDir.z -= 1; if (moveB) moveDir.z += 1;
-      if (moveL) moveDir.x -= 1; if (moveR) moveDir.x += 1;
-      
-      if (moveDir.lengthSq() > 0) {
-        moveDir.normalize().applyAxisAngle(new THREE.Vector3(0,1,0), player.rotation.y);
-
-        const nextX = player.position.x + moveDir.x * speed * delta;
-        const nextZ = player.position.z + moveDir.z * speed * delta;
-
-        let collide = false;
-        for (let b of buildingColliders) {
-          if (nextX > b.minX && nextX < b.maxX && nextZ > b.minZ && nextZ < b.maxZ) {
-            collide = true; break;
-          }
-        }
-        if (nextX < MAP_LIMIT.minX || nextX > MAP_LIMIT.maxX || nextZ < MAP_LIMIT.minZ || nextZ > MAP_LIMIT.maxZ) {
-          collide = true;
+            // 実際の移動適用
+            controls.moveRight(-velocity.x * delta);
+            controls.moveForward(-velocity.z * delta);
         }
 
-        if (!collide) {
-          player.position.x = nextX;
-          player.position.z = nextZ;
-        }
-      }
-
-      nearbyItemAction = null;
-      let promptText = "";
-
-      const distToGoal = player.position.distanceTo(goalGroup.position);
-      if (distToGoal < 3.0) {
-        if (keysCount >= keyPositions.length) {
-          promptText = "[E] 脱出する (Lv2へ)";
-          nearbyItemAction = () => { triggerClear(); };
-        } else {
-          promptText = `鍵が不足しています (${keysCount}/${keyPositions.length})`;
-        }
-      }
-
-      if (!nearbyItemAction) {
-        keys.forEach(k => {
-          if (!k.collected && player.position.distanceTo(k.pos) < 2.2) {
-            promptText = "[E] 鍵を拾う";
-            nearbyItemAction = () => {
-              k.collected = true; scene.remove(k.mesh); keysCount++;
-              showMsg("黄金の鍵を獲得した！"); audio.playSE(650, 0.3);
-              if (keysCount === 2) triggerChanceTime();
-              if (keysCount === keyPositions.length) {
-                showMsg("鍵が5つ揃った！中央のゴールが開いた！");
-                goalLight.color.setHex(0x00ff88);
-                portalCoreMat.color.setHex(0x00ff88);
-              }
-              updateUI();
-            };
-          }
-        });
-      }
-
-      if (!nearbyItemAction) {
-        batteries.forEach(b => {
-          if (!b.collected && player.position.distanceTo(b.pos) < 2.0) {
-            promptText = "[E] 乾電池を拾う";
-            nearbyItemAction = () => {
-              b.collected = true; scene.remove(b.mesh); battery = Math.min(100, battery + 50);
-              showMsg("乾電池を獲得！ライト回復！"); audio.playSE(450, 0.2); updateUI();
-            };
-          }
-        });
-      }
-
-      if (!nearbyItemAction) {
-        firecrackerItems.forEach(fc => {
-          if (!fc.collected && player.position.distanceTo(fc.pos) < 2.0) {
-            promptText = "[E] 爆竹を拾う";
-            nearbyItemAction = () => {
-              fc.collected = true; scene.remove(fc.mesh); firecrackers++;
-              showMsg("爆竹を拾った！ [F]キーで投擲"); audio.playSE(750, 0.2); updateUI();
-            };
-          }
-        });
-      }
-
-      const promptEl = document.getElementById('interact-prompt');
-      if (promptText !== "") {
-        promptEl.textContent = promptText;
-        promptEl.style.display = 'block';
-      } else {
-        promptEl.style.display = 'none';
-      }
-
-      if (revealEnemiesTimer > 0) revealEnemiesTimer -= delta;
-
-      const levelSpeedBonus = (currentLevel - 1) * 0.8;
-      monsters.forEach(m => {
-        if (m.isStunned) {
-          m.stunTimer -= delta;
-          if (m.stunTimer <= 0) m.isStunned = false;
-          return;
-        }
-
-        const dist = m.pos.distanceTo(player.position);
-        let detectDist = (20 * diffParams.detectMult);
-
-        if (dist < detectDist) {
-          const dir = new THREE.Vector3().subVectors(player.position, m.pos).normalize();
-          m.pos.add(dir.multiplyScalar((4.1 + levelSpeedBonus) * diffParams.speedMult * delta));
-          m.group.rotation.y = Math.atan2(dir.x, dir.z);
-          m.group.position.y = Math.sin(now * 0.005) * 0.2;
-
-          if (dist < 12) audio.playHeartbeat();
-        }
-
-        if (dist < 1.6) triggerJumpscare();
-      });
-
-      updateMinimap();
-      updateUI();
+        prevTime = time;
+        renderer.render(scene, camera);
     }
-
-    const miniCanvas = document.getElementById('minimap-canvas');
-    const miniCtx = miniCanvas.getContext('2d');
-
-    function updateMinimap() {
-      miniCtx.clearRect(0, 0, 160, 160);
-      const cx = 80, cy = 80, scale = 1.3;
-
-      miniCtx.fillStyle = '#222530';
-      buildingRenderData.forEach(b => {
-        const dx = (b.x - player.position.x) * scale;
-        const dz = (b.z - player.position.z) * scale;
-        const w = b.w * scale, d = b.d * scale;
-        miniCtx.fillRect(cx + dx - w/2, cy + dz - d/2, w, d);
-      });
-
-      const gdx = (goalGroup.position.x - player.position.x) * scale;
-      const gdz = (goalGroup.position.z - player.position.z) * scale;
-      miniCtx.fillStyle = keysCount >= keyPositions.length ? '#00ff88' : '#0088ff';
-      miniCtx.fillRect(cx + gdx - 4, cy + gdz - 4, 8, 8);
-
-      miniCtx.fillStyle = '#ffcc00';
-      keys.forEach(k => {
-        if (!k.collected) {
-          const dx = (k.pos.x - player.position.x) * scale;
-          const dz = (k.pos.z - player.position.z) * scale;
-          if (Math.hypot(dx, dz) < 70) {
-            miniCtx.beginPath(); miniCtx.arc(cx + dx, cy + dz, 3.5, 0, Math.PI*2); miniCtx.fill();
-          }
-        }
-      });
-
-      monsters.forEach(m => {
-        const dx = (m.pos.x - player.position.x) * scale;
-        const dz = (m.pos.z - player.position.z) * scale;
-        const dist = Math.hypot(dx, dz);
-        if (dist < 70 && (dist < 20 || revealEnemiesTimer > 0)) {
-          miniCtx.fillStyle = '#ff0000';
-          miniCtx.beginPath(); miniCtx.arc(cx + dx, cy + dz, 4.5, 0, Math.PI*2); miniCtx.fill();
-        }
-      });
-
-      miniCtx.save();
-      miniCtx.translate(cx, cy);
-      miniCtx.rotate(-player.rotation.y);
-      miniCtx.fillStyle = '#00ff88';
-      miniCtx.beginPath();
-      miniCtx.moveTo(0, -6); miniCtx.lineTo(4, 5); miniCtx.lineTo(-4, 5);
-      miniCtx.closePath(); miniCtx.fill();
-      miniCtx.restore();
-    }
-
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
 
     animate();
-  </script>
+
+    // ウィンドウサイズ変更対応
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+</script>
 </body>
 </html>
