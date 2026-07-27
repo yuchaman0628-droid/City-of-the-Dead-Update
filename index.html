@@ -140,7 +140,7 @@
       <div style="margin-top:4px;">BATTERY</div>
       <div class="bar-bg"><div id="battery-bar" class="bar-fill"></div></div>
     </div>
-    <div id="crouch-status" style="font-size:10px; color:#aaa;">[Ctrl/C] しゃがみ | [E] 拾う/脱出 | [Esc] ポーズ</div>
+    <div style="font-size:10px; color:#aaa;">[E] 拾う/脱出 | [F] 爆竹 | [Esc] ポーズ</div>
   </div>
 
   <div id="minimap-container"><canvas id="minimap-canvas" width="160" height="160"></canvas></div>
@@ -175,7 +175,7 @@
 
     <button class="btn-action" id="start-btn">街 に 入 る</button>
     <div style="font-size:11px; color:#777; margin-top:20px; line-height:1.6; text-align:center;">
-      [W/A/S/D] 移動 | [Shift] ダッシュ | [Ctrl/C] しゃがみ隠れる<br>
+      [W/A/S/D] 移動 | [Shift] ダッシュ | [画面クリック] 視点操作<br>
       鍵を5つ集めて『中央のポータル』から脱出せよ！
     </div>
   </div>
@@ -523,17 +523,24 @@
     // ゲーム変数
     let isPlaying = false, isPaused = false, isChanceTime = false;
     let stamina = 100, battery = 100, firecrackers = 0;
-    let isCrouching = false, isSprinting = false;
+    let isSprinting = false;
     let keysCount = 0;
     let revealEnemiesTimer = 0;
     let nearbyItemAction = null;
 
     let moveF = false, moveB = false, moveL = false, moveR = false;
 
+    // クリックでポインターロック（動けないバグ対策）
+    document.body.addEventListener('click', () => {
+      if (isPlaying && !isPaused && !isChanceTime && document.pointerLockElement !== document.body) {
+        document.body.requestPointerLock();
+      }
+    });
+
     // チャンスタイム
     function triggerChanceTime() {
       isChanceTime = true;
-      document.exitPointerLock();
+      if (document.pointerLockElement) document.exitPointerLock();
       document.getElementById('chance-result').textContent = '';
       document.getElementById('chance-screen').style.display = 'flex';
     }
@@ -571,25 +578,23 @@
       lvlEl.style.color = currentLevel >= 2 ? '#ff3333' : '#00ff88';
     }
 
-    // キーボード操作
+    // キーボード操作（e.keyとe.codeの両方で判定して誤作動・バグを防止）
     document.addEventListener('keydown', (e) => {
-      if (e.code === 'KeyW') moveF = true;
-      if (e.code === 'KeyS') moveB = true;
-      if (e.code === 'KeyA') moveL = true;
-      if (e.code === 'KeyD') moveR = true;
-      if (e.code === 'ShiftLeft') isSprinting = true;
-      if (e.code === 'ControlLeft' || e.code === 'KeyC') {
-        isCrouching = !isCrouching;
-        player.position.y = isCrouching ? 0.8 : 1.6;
-      }
-      if (e.code === 'KeyE') {
+      const k = e.key.toLowerCase();
+      if (k === 'w' || e.code === 'KeyW') moveF = true;
+      if (k === 's' || e.code === 'KeyS') moveB = true;
+      if (k === 'a' || e.code === 'KeyA') moveL = true;
+      if (k === 'd' || e.code === 'KeyD') moveR = true;
+      if (e.key === 'Shift' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') isSprinting = true;
+      
+      if (k === 'e' || e.code === 'KeyE') {
         if (nearbyItemAction) {
           nearbyItemAction();
           nearbyItemAction = null;
           document.getElementById('interact-prompt').style.display = 'none';
         }
       }
-      if (e.code === 'KeyF') {
+      if (k === 'f' || e.code === 'KeyF') {
         if (firecrackers > 0) {
           firecrackers--;
           updateUI();
@@ -600,15 +605,16 @@
           showMsg("爆竹を持っていません！");
         }
       }
-      if (e.code === 'Escape') togglePause();
+      if (e.key === 'Escape' || e.code === 'Escape') togglePause();
     });
 
     document.addEventListener('keyup', (e) => {
-      if (e.code === 'KeyW') moveF = false;
-      if (e.code === 'KeyS') moveB = false;
-      if (e.code === 'KeyA') moveL = false;
-      if (e.code === 'KeyD') moveR = false;
-      if (e.code === 'ShiftLeft') isSprinting = false;
+      const k = e.key.toLowerCase();
+      if (k === 'w' || e.code === 'KeyW') moveF = false;
+      if (k === 's' || e.code === 'KeyS') moveB = false;
+      if (k === 'a' || e.code === 'KeyA') moveL = false;
+      if (k === 'd' || e.code === 'KeyD') moveR = false;
+      if (e.key === 'Shift' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') isSprinting = false;
     });
 
     document.addEventListener('mousemove', (e) => {
@@ -622,7 +628,11 @@
       if (!isPlaying || isChanceTime) return;
       isPaused = !isPaused;
       document.getElementById('pause-menu').style.display = isPaused ? 'flex' : 'none';
-      if (isPaused) document.exitPointerLock(); else document.body.requestPointerLock();
+      if (isPaused) {
+        if (document.pointerLockElement) document.exitPointerLock();
+      } else {
+        document.body.requestPointerLock();
+      }
     }
     document.getElementById('resume-btn').onclick = togglePause;
 
@@ -646,17 +656,16 @@
       goalLight.color.setHex(0x0088ff);
       portalCoreMat.color.setHex(0x00ffff);
 
-      // --- LEVEL 2: マップ全体を赤く染める設定 ---
+      // --- LEVEL 2: マップ全体を赤く染める ---
       if (currentLevel >= 2) {
-        scene.background.setHex(0x220000); // 赤黒い背景
-        scene.fog.color.setHex(0x330000);  // 赤い霧
+        scene.background.setHex(0x220000);
+        scene.fog.color.setHex(0x330000);
         scene.fog.density = 0.03;
-        ambientLight.color.setHex(0xff3333); // 赤い環境光
+        ambientLight.color.setHex(0xff3333);
         ambientLight.intensity = 0.8;
-        moonLight.color.setHex(0xff0000);    // 赤い月光
+        moonLight.color.setHex(0xff0000);
         showMsg("LEVEL 2: 赤い世界へ突入... 怪物たちの速度が上昇！");
       } else {
-        // LEVEL 1 通常色
         scene.background.setHex(0x05070c);
         scene.fog.color.setHex(0x05070c);
         scene.fog.density = 0.025;
@@ -701,7 +710,7 @@
 
     function triggerJumpscare() {
       isPlaying = false;
-      document.exitPointerLock();
+      if (document.pointerLockElement) document.exitPointerLock();
       document.getElementById('interact-prompt').style.display = 'none';
       document.getElementById('jumpscare-overlay').style.display = 'flex';
       audio.playSE(80, 1.5, 'sawtooth');
@@ -713,7 +722,7 @@
 
     function triggerClear() {
       isPlaying = false;
-      document.exitPointerLock();
+      if (document.pointerLockElement) document.exitPointerLock();
       document.getElementById('interact-prompt').style.display = 'none';
       let rank = 'S';
       if (playTime > 90) rank = 'A';
@@ -748,9 +757,9 @@
         flashlight.intensity = 0.15;
       }
 
+      // 移動処理（しゃがみを削除し固定速度へ）
       let speed = 4.8;
-      if (isCrouching) speed = 2.2;
-      else if (isSprinting && stamina > 0 && (moveF||moveB||moveL||moveR)) {
+      if (isSprinting && stamina > 0 && (moveF||moveB||moveL||moveR)) {
         speed = 8.5; stamina -= delta * 25;
       } else if (stamina < 100) {
         stamina += delta * 15;
@@ -759,24 +768,27 @@
       const moveDir = new THREE.Vector3();
       if (moveF) moveDir.z -= 1; if (moveB) moveDir.z += 1;
       if (moveL) moveDir.x -= 1; if (moveR) moveDir.x += 1;
-      moveDir.normalize().applyAxisAngle(new THREE.Vector3(0,1,0), player.rotation.y);
+      
+      if (moveDir.lengthSq() > 0) {
+        moveDir.normalize().applyAxisAngle(new THREE.Vector3(0,1,0), player.rotation.y);
 
-      const nextX = player.position.x + moveDir.x * speed * delta;
-      const nextZ = player.position.z + moveDir.z * speed * delta;
+        const nextX = player.position.x + moveDir.x * speed * delta;
+        const nextZ = player.position.z + moveDir.z * speed * delta;
 
-      let collide = false;
-      for (let b of buildingColliders) {
-        if (nextX > b.minX && nextX < b.maxX && nextZ > b.minZ && nextZ < b.maxZ) {
-          collide = true; break;
+        let collide = false;
+        for (let b of buildingColliders) {
+          if (nextX > b.minX && nextX < b.maxX && nextZ > b.minZ && nextZ < b.maxZ) {
+            collide = true; break;
+          }
         }
-      }
-      if (nextX < MAP_LIMIT.minX || nextX > MAP_LIMIT.maxX || nextZ < MAP_LIMIT.minZ || nextZ > MAP_LIMIT.maxZ) {
-        collide = true;
-      }
+        if (nextX < MAP_LIMIT.minX || nextX > MAP_LIMIT.maxX || nextZ < MAP_LIMIT.minZ || nextZ > MAP_LIMIT.maxZ) {
+          collide = true;
+        }
 
-      if (!collide) {
-        player.position.x = nextX;
-        player.position.z = nextZ;
+        if (!collide) {
+          player.position.x = nextX;
+          player.position.z = nextZ;
+        }
       }
 
       nearbyItemAction = null;
@@ -854,7 +866,7 @@
         }
 
         const dist = m.pos.distanceTo(player.position);
-        let detectDist = (20 * diffParams.detectMult) * (isCrouching ? 0.35 : 1.0);
+        let detectDist = (20 * diffParams.detectMult);
 
         if (dist < detectDist) {
           const dir = new THREE.Vector3().subVectors(player.position, m.pos).normalize();
