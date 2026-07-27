@@ -95,7 +95,6 @@
     }
     #pause-menu { background: rgba(0, 0, 0, 0.88); z-index: 40; display: none; }
     
-    /* ポーズ設定エリアのスタイリング */
     .settings-panel {
       background: rgba(20, 20, 20, 0.8);
       border: 1px solid #444;
@@ -184,7 +183,6 @@
     <div id="chance-result" style="margin-top:25px; font-size:18px; color:#00ff88; min-height:25px;"></div>
   </div>
 
-  <!-- ポーズメニュー (設定パネルを追加) -->
   <div id="pause-menu">
     <div style="font-size:36px; color:#cc0000; font-weight:bold; letter-spacing:4px;">PAUSED</div>
     
@@ -238,11 +236,10 @@
   <div id="canvas-container"></div>
 
   <script>
-    // --- 音声エンジン（マスター音量反映） ---
     class HorrorAudio {
       constructor() { 
         this.ctx = null; 
-        this.masterVolume = 0.5; // 初期音量 50%
+        this.masterVolume = 0.5;
       }
       init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
       
@@ -279,11 +276,10 @@
     }
     const audio = new HorrorAudio();
 
-    // --- ゲーム難易度・設定項目 ---
     let difficulty = 'normal';
     let currentLevel = 1;
     let diffParams = { speedMult: 1.0, detectMult: 1.0 };
-    let mouseSensitivity = 0.002; // デフォルト感度
+    let mouseSensitivity = 0.002;
 
     function setDifficulty(diff, btn) {
       difficulty = diff;
@@ -294,7 +290,6 @@
       if (diff === 'hard') diffParams = { speedMult: 1.35, detectMult: 1.4 };
     }
 
-    // --- ポーズ画面での設定リアルタイム更新 ---
     function updateSettings() {
       const vol = document.getElementById('volume-slider').value;
       const sens = document.getElementById('sens-slider').value;
@@ -302,15 +297,13 @@
       document.getElementById('volume-val').textContent = `${vol}%`;
       document.getElementById('sens-val').textContent = sens;
 
-      // 音量と感度へ反映
       audio.masterVolume = vol / 100;
-      mouseSensitivity = (sens / 5) * 0.002; // スライダー5でベースの0.002
+      mouseSensitivity = (sens / 5) * 0.002;
     }
 
     let playTime = 0;
     let timerInterval = null;
 
-    // --- 3D 空間視界・照明の設定 ---
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x05070c);
@@ -336,14 +329,12 @@
     moonLight.position.set(20, 50, 20);
     scene.add(moonLight);
 
-    // 懐中電灯
     const flashlight = new THREE.SpotLight(0xfff5e0, 4.5, 35, Math.PI / 4, 0.3, 1);
     camera.add(flashlight);
     flashlight.position.set(0, 0, 0);
     flashlight.target.position.set(0, 0, -1);
     camera.add(flashlight.target);
 
-    // 地面
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(200, 200),
       new THREE.MeshStandardMaterial({ color: 0x15181c, roughness: 0.8 })
@@ -353,7 +344,6 @@
 
     const MAP_LIMIT = { minX: -60, maxX: 60, minZ: -65, maxZ: 45 };
 
-    // --- マップ中央のゴール門 ---
     const goalGroup = new THREE.Group();
     const portalCoreMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.6 });
     
@@ -377,7 +367,6 @@
     goalGroup.position.set(0, 0, 0);
     scene.add(goalGroup);
 
-    // --- 街並み・建物生成 ---
     const buildingColliders = [];
     const buildingRenderData = [];
 
@@ -436,7 +425,6 @@
     }
     buildCity();
 
-    // --- 鍵モデル ---
     function createKeyMesh() {
       const group = new THREE.Group();
       const goldMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, metalness: 0.8, roughness: 0.2 });
@@ -469,7 +457,6 @@
     const batteries = [];
     const firecrackerItems = [];
 
-    // --- アイテム生成 ---
     function spawnItems() {
       keys.forEach(k => scene.remove(k.mesh));
       keys.length = 0;
@@ -555,7 +542,6 @@
       });
     }
 
-    // --- モンスター生成 ---
     function createScaryMonster() {
       const group = new THREE.Group();
 
@@ -587,7 +573,6 @@
 
     const monsters = [ createScaryMonster(), createScaryMonster() ];
 
-    // ゲーム変数
     let isPlaying = false, isPaused = false, isChanceTime = false;
     let stamina = 100, battery = 100, firecrackers = 0;
     let isSprinting = false;
@@ -597,14 +582,14 @@
 
     let moveF = false, moveB = false, moveL = false, moveR = false;
 
-    // クリックでポインターロック
-    document.body.addEventListener('click', () => {
+    // 修正: 画面クリックでポインターをキャプチャ（安全な呼び出し）
+    function requestLock() {
       if (isPlaying && !isPaused && !isChanceTime && document.pointerLockElement !== document.body) {
         document.body.requestPointerLock();
       }
-    });
+    }
+    document.body.addEventListener('click', requestLock);
 
-    // チャンスタイム
     function triggerChanceTime() {
       isChanceTime = true;
       if (document.pointerLockElement) document.exitPointerLock();
@@ -625,7 +610,7 @@
       setTimeout(() => {
         document.getElementById('chance-screen').style.display = 'none';
         isChanceTime = false;
-        document.body.requestPointerLock();
+        requestLock();
       }, 1500);
     };
 
@@ -645,7 +630,6 @@
       lvlEl.style.color = currentLevel >= 2 ? '#ff3333' : '#00ff88';
     }
 
-    // キーボード操作
     document.addEventListener('keydown', (e) => {
       const k = e.key.toLowerCase();
       if (k === 'w' || e.code === 'KeyW') moveF = true;
@@ -697,11 +681,14 @@
       document.getElementById('pause-menu').style.display = isPaused ? 'flex' : 'none';
       if (isPaused) {
         if (document.pointerLockElement) document.exitPointerLock();
-      } else {
-        document.body.requestPointerLock();
       }
     }
-    document.getElementById('resume-btn').onclick = togglePause;
+    
+    // 再開ボタン押下時のPointerLock制限を修正
+    document.getElementById('resume-btn').onclick = () => {
+      togglePause();
+      requestLock();
+    };
 
     function startGame() {
       currentLevel = 1;
@@ -711,7 +698,7 @@
       document.getElementById('minimap-container').style.display = 'block';
       document.getElementById('crosshair').style.display = 'block';
       audio.init();
-      document.body.requestPointerLock();
+      requestLock();
     }
 
     function initLevel() {
@@ -723,7 +710,6 @@
       goalLight.color.setHex(0x0088ff);
       portalCoreMat.color.setHex(0x00ffff);
 
-      // --- LEVEL 2: マップ全体を赤く染める ---
       if (currentLevel >= 2) {
         scene.background.setHex(0x220000);
         scene.fog.color.setHex(0x330000);
@@ -758,7 +744,7 @@
       currentLevel++;
       document.getElementById('clear-overlay').style.display = 'none';
       initLevel();
-      document.body.requestPointerLock();
+      requestLock();
     }
 
     document.getElementById('start-btn').onclick = startGame;
@@ -824,7 +810,6 @@
         flashlight.intensity = 0.15;
       }
 
-      // 移動処理
       let speed = 4.8;
       if (isSprinting && stamina > 0 && (moveF||moveB||moveL||moveR)) {
         speed = 8.5; stamina -= delta * 25;
