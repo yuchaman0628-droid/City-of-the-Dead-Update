@@ -93,14 +93,42 @@
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       display: flex; flex-direction: column; justify-content: center; align-items: center; color: #eee;
     }
-    #pause-menu { background: rgba(0, 0, 0, 0.85); z-index: 40; display: none; }
+    #pause-menu { background: rgba(0, 0, 0, 0.88); z-index: 40; display: none; }
+    
+    /* ポーズ設定エリアのスタイリング */
+    .settings-panel {
+      background: rgba(20, 20, 20, 0.8);
+      border: 1px solid #444;
+      border-top: 3px solid #b30000;
+      padding: 20px 30px;
+      border-radius: 6px;
+      margin: 15px 0 25px 0;
+      width: 320px;
+    }
+    .setting-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      letter-spacing: 1px;
+    }
+    .setting-item:last-child { margin-bottom: 0; }
+    .setting-label { display: flex; justify-content: space-between; color: #aaa; }
+    .setting-label span { color: #ffcc00; font-weight: bold; }
+    .setting-slider {
+      width: 100%;
+      accent-color: #b30000;
+      cursor: pointer;
+    }
+
     #title-screen { background: radial-gradient(circle, rgba(25, 2, 2, 0.98) 0%, rgba(0,0,0,1) 100%); z-index: 30; }
     #gameover-overlay { background-color: rgba(30, 0, 0, 0.98); display: none; z-index: 50; }
     #clear-overlay { background-color: rgba(0, 20, 10, 0.95); display: none; z-index: 50; }
 
     .btn-action {
       background: transparent; border: 1px solid #666; color: #ddd;
-      padding: 12px 36px; font-size: 16px; font-family: inherit; letter-spacing: 3px; cursor: pointer; transition: all 0.3s; margin-top: 15px;
+      padding: 12px 36px; font-size: 16px; font-family: inherit; letter-spacing: 3px; cursor: pointer; transition: all 0.3s; margin-top: 10px;
     }
     .btn-action:hover { background: #800000; color: #fff; border-color: #f00; box-shadow: 0 0 15px #f00; }
 
@@ -156,8 +184,21 @@
     <div id="chance-result" style="margin-top:25px; font-size:18px; color:#00ff88; min-height:25px;"></div>
   </div>
 
+  <!-- ポーズメニュー (設定パネルを追加) -->
   <div id="pause-menu">
-    <div style="font-size:36px; color:#cc0000; margin-bottom:20px;">PAUSED</div>
+    <div style="font-size:36px; color:#cc0000; font-weight:bold; letter-spacing:4px;">PAUSED</div>
+    
+    <div class="settings-panel">
+      <div class="setting-item">
+        <div class="setting-label">音量 (VOLUME): <span id="volume-val">50%</span></div>
+        <input type="range" id="volume-slider" class="setting-slider" min="0" max="100" value="50" oninput="updateSettings()">
+      </div>
+      <div class="setting-item">
+        <div class="setting-label">マウス感度 (SENSITIVITY): <span id="sens-val">5</span></div>
+        <input type="range" id="sens-slider" class="setting-slider" min="1" max="10" value="5" oninput="updateSettings()">
+      </div>
+    </div>
+
     <button class="btn-action" id="resume-btn">再 開</button>
   </div>
 
@@ -197,10 +238,14 @@
   <div id="canvas-container"></div>
 
   <script>
-    // --- 音声エンジン ---
+    // --- 音声エンジン（マスター音量反映） ---
     class HorrorAudio {
-      constructor() { this.ctx = null; }
+      constructor() { 
+        this.ctx = null; 
+        this.masterVolume = 0.5; // 初期音量 50%
+      }
       init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+      
       playHeartbeat() {
         if (!this.ctx) return;
         const now = this.ctx.currentTime;
@@ -208,27 +253,37 @@
         const gain = this.ctx.createGain();
         osc.type = 'sine'; osc.frequency.setValueAtTime(55, now);
         osc.frequency.exponentialRampToValueAtTime(10, now + 0.18);
-        gain.gain.setValueAtTime(0.9, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+        
+        const vol = 0.9 * this.masterVolume;
+        gain.gain.setValueAtTime(vol, now); 
+        gain.gain.exponentialRampToValueAtTime(Math.max(0.001, vol * 0.01), now + 0.18);
+        
         osc.connect(gain); gain.connect(this.ctx.destination);
         osc.start(now); osc.stop(now + 0.18);
       }
+      
       playSE(freq, duration, type='sine') {
         if (!this.ctx) return;
         const now = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = type; osc.frequency.setValueAtTime(freq, now);
-        gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+        
+        const vol = 0.3 * this.masterVolume;
+        gain.gain.setValueAtTime(vol, now); 
+        gain.gain.exponentialRampToValueAtTime(Math.max(0.001, vol * 0.01), now + duration);
+        
         osc.connect(gain); gain.connect(this.ctx.destination);
         osc.start(now); osc.stop(now + duration);
       }
     }
     const audio = new HorrorAudio();
 
-    // --- ゲーム難易度・レベル設定 ---
+    // --- ゲーム難易度・設定項目 ---
     let difficulty = 'normal';
     let currentLevel = 1;
     let diffParams = { speedMult: 1.0, detectMult: 1.0 };
+    let mouseSensitivity = 0.002; // デフォルト感度
 
     function setDifficulty(diff, btn) {
       difficulty = diff;
@@ -239,7 +294,19 @@
       if (diff === 'hard') diffParams = { speedMult: 1.35, detectMult: 1.4 };
     }
 
-    let mouseSensitivity = 0.002;
+    // --- ポーズ画面での設定リアルタイム更新 ---
+    function updateSettings() {
+      const vol = document.getElementById('volume-slider').value;
+      const sens = document.getElementById('sens-slider').value;
+
+      document.getElementById('volume-val').textContent = `${vol}%`;
+      document.getElementById('sens-val').textContent = sens;
+
+      // 音量と感度へ反映
+      audio.masterVolume = vol / 100;
+      mouseSensitivity = (sens / 5) * 0.002; // スライダー5でベースの0.002
+    }
+
     let playTime = 0;
     let timerInterval = null;
 
@@ -530,7 +597,7 @@
 
     let moveF = false, moveB = false, moveL = false, moveR = false;
 
-    // クリックでポインターロック（動けないバグ対策）
+    // クリックでポインターロック
     document.body.addEventListener('click', () => {
       if (isPlaying && !isPaused && !isChanceTime && document.pointerLockElement !== document.body) {
         document.body.requestPointerLock();
@@ -578,7 +645,7 @@
       lvlEl.style.color = currentLevel >= 2 ? '#ff3333' : '#00ff88';
     }
 
-    // キーボード操作（e.keyとe.codeの両方で判定して誤作動・バグを防止）
+    // キーボード操作
     document.addEventListener('keydown', (e) => {
       const k = e.key.toLowerCase();
       if (k === 'w' || e.code === 'KeyW') moveF = true;
@@ -757,7 +824,7 @@
         flashlight.intensity = 0.15;
       }
 
-      // 移動処理（しゃがみを削除し固定速度へ）
+      // 移動処理
       let speed = 4.8;
       if (isSprinting && stamina > 0 && (moveF||moveB||moveL||moveR)) {
         speed = 8.5; stamina -= delta * 25;
