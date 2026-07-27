@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>死の市 - Ultimate Horror Edition</title>
+  <title>死の市 - Ultimate Realism & Horror Edition</title>
   <style>
     * { box-sizing: border-box; }
     html, body {
@@ -20,29 +20,29 @@
     #vhs-overlay {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       pointer-events: none;
-      background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15), rgba(0,0,0,0.15) 1px, transparent 1px, transparent 2px);
-      box-shadow: inset 0 0 160px rgba(0,0,0,0.95);
+      background: repeating-linear-gradient(0deg, rgba(0,0,0,0.08), rgba(0,0,0,0.08) 1px, transparent 1px, transparent 2px);
+      box-shadow: inset 0 0 120px rgba(0,0,0,0.85);
       z-index: 10;
     }
 
     #jumpscare-overlay {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: radial-gradient(circle, rgba(150,0,0,0.9) 0%, rgba(0,0,0,1) 80%);
+      background: radial-gradient(circle, rgba(200,0,0,0.95) 0%, rgba(0,0,0,1) 80%);
       display: none; justify-content: center; align-items: center;
       flex-direction: column; z-index: 60;
     }
     .jumpscare-face {
-      font-size: 140px; text-shadow: 0 0 50px #f00, 0 0 100px #ff0000;
-      animation: scareZoom 0.15s infinite alternate;
+      font-size: 160px; text-shadow: 0 0 60px #f00, 0 0 120px #ff0000;
+      animation: scareZoom 0.1s infinite alternate;
     }
     @keyframes scareZoom {
-      0% { transform: scale(1) rotate(-3deg); }
-      100% { transform: scale(1.3) rotate(3deg); }
+      0% { transform: scale(1) rotate(-5deg); }
+      100% { transform: scale(1.4) rotate(5deg); }
     }
 
     #crosshair {
       position: absolute; top: 50%; left: 50%; width: 6px; height: 6px;
-      background-color: rgba(255, 255, 255, 0.7); border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.8); border-radius: 50%;
       transform: translate(-50%, -50%); z-index: 20; display: none; pointer-events: none;
     }
 
@@ -62,9 +62,9 @@
     #battery-bar { background: #0088ff; }
 
     #minimap-container {
-      position: absolute; bottom: 20px; right: 20px; width: 140px; height: 140px;
-      background: rgba(10, 10, 15, 0.85); border: 2px solid #555; border-radius: 50%;
-      z-index: 25; display: none; box-shadow: 0 0 15px rgba(0,0,0,0.9); overflow: hidden;
+      position: absolute; bottom: 20px; right: 20px; width: 160px; height: 160px;
+      background: rgba(5, 5, 10, 0.9); border: 2px solid #666; border-radius: 50%;
+      z-index: 25; display: none; box-shadow: 0 0 20px rgba(0,0,0,0.9); overflow: hidden;
     }
     #minimap-canvas { width: 100%; height: 100%; }
 
@@ -107,7 +107,6 @@
       z-index: 20; pointer-events: none; opacity: 0; transition: opacity 0.4s;
     }
   </style>
-  <!-- Three.js (安定版CDN) -->
   <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
 </head>
 <body>
@@ -116,14 +115,15 @@
   <div id="crosshair"></div>
 
   <div id="jumpscare-overlay">
-    <div class="jumpscare-face">👹</div>
+    <div class="jumpscare-face">💀</div>
+    <div style="color:#ff0000; font-size:24px; font-weight:bold; letter-spacing:6px; margin-top:20px;">捕 獲</div>
   </div>
 
   <div id="ui">
     <div class="hud-box">
       <div>『死の市』逃走領域</div>
-      <div style="margin-top:2px;">鍵: <span id="key-count" style="color:#ff3333; font-weight:bold;">0 / 5</span></div>
-      <div>爆竹 [F]: <span id="firecracker-count" style="color:#ffcc00;">0</span> 個</div>
+      <div style="margin-top:2px;">鍵: <span id="key-count" style="color:#ffcc00; font-weight:bold;">0 / 5</span></div>
+      <div>爆竹 [F]: <span id="firecracker-count" style="color:#ff3333; font-weight:bold;">0</span> 個</div>
       <div>TIME: <span id="timer-display">00:00</span></div>
     </div>
     <div class="hud-box">
@@ -132,10 +132,10 @@
       <div style="margin-top:4px;">BATTERY</div>
       <div class="bar-bg"><div id="battery-bar" class="bar-fill"></div></div>
     </div>
-    <div id="crouch-status" style="font-size:10px; color:#aaa;">[Ctrl/C] しゃがみ | [Esc] メニュー</div>
+    <div id="crouch-status" style="font-size:10px; color:#aaa;">[Ctrl/C] しゃがみ | [Esc] ポーズ</div>
   </div>
 
-  <div id="minimap-container"><canvas id="minimap-canvas" width="140" height="140"></canvas></div>
+  <div id="minimap-container"><canvas id="minimap-canvas" width="160" height="160"></canvas></div>
 
   <div id="chance-screen">
     <div class="chance-title">✨ CHANCE TIME ✨</div>
@@ -157,7 +157,7 @@
 
   <div id="title-screen">
     <div style="font-size:64px; color:#b30000; font-weight:bold; letter-spacing:10px;">死 の 市</div>
-    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- ULTIMATE HORROR EDITION -</div>
+    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- REALISTIC HORROR EDITION -</div>
     
     <div class="diff-selector">
       <button class="diff-btn" onclick="setDifficulty('easy', this)">EASY</button>
@@ -167,8 +167,8 @@
 
     <button class="btn-action" id="start-btn">街 に 入 る</button>
     <div style="font-size:11px; color:#777; margin-top:20px; line-height:1.6; text-align:center;">
-      [W/A/S/D] 移動 | [Shift] ダッシュ | [Ctrl/C] しゃがみ（隠れる）<br>
-      [F] 爆竹投擲（敵麻痺）| 青いアイテムで懐中電灯を回復！
+      [W/A/S/D] 移動 | [Shift] ダッシュ | [Ctrl/C] しゃがみ隠れる<br>
+      [F] 爆竹使用（道で拾って敵を麻痺）| 道の上の金色の『鍵』を5つ探せ！
     </div>
   </div>
 
@@ -189,7 +189,7 @@
   <div id="canvas-container"></div>
 
   <script>
-    // --- 音声生成 (Web Audio API) ---
+    // --- 音声エンジン ---
     class HorrorAudio {
       constructor() { this.ctx = null; }
       init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
@@ -198,11 +198,11 @@
         const now = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
-        osc.type = 'sine'; osc.frequency.setValueAtTime(60, now);
-        osc.frequency.exponentialRampToValueAtTime(10, now + 0.15);
-        gain.gain.setValueAtTime(0.8, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        osc.type = 'sine'; osc.frequency.setValueAtTime(55, now);
+        osc.frequency.exponentialRampToValueAtTime(10, now + 0.18);
+        gain.gain.setValueAtTime(0.9, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
         osc.connect(gain); gain.connect(this.ctx.destination);
-        osc.start(now); osc.stop(now + 0.15);
+        osc.start(now); osc.stop(now + 0.18);
       }
       playSE(freq, duration, type='sine') {
         if (!this.ctx) return;
@@ -217,7 +217,7 @@
     }
     const audio = new HorrorAudio();
 
-    // --- ゲーム設定 ---
+    // --- ゲーム難易度設定 ---
     let difficulty = 'normal';
     let diffParams = { speedMult: 1.0, detectMult: 1.0 };
 
@@ -227,18 +227,19 @@
       btn.classList.add('active');
       if (diff === 'easy') diffParams = { speedMult: 0.75, detectMult: 0.7 };
       if (diff === 'normal') diffParams = { speedMult: 1.0, detectMult: 1.0 };
-      if (diff === 'hard') diffParams = { speedMult: 1.3, detectMult: 1.4 };
+      if (diff === 'hard') diffParams = { speedMult: 1.35, detectMult: 1.4 };
     }
 
     let mouseSensitivity = 0.002;
     let playTime = 0;
     let timerInterval = null;
 
-    // --- 3D 空間初期化 ---
+    // --- 3D 空間視界・照明の設定 ---
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x020204);
-    scene.fog = new THREE.FogExp2(0x020204, 0.04);
+    scene.background = new THREE.Color(0x05070c);
+    // 視界が真っ暗になりすぎないように霧を適度に調整
+    scene.fog = new THREE.FogExp2(0x05070c, 0.025);
 
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 150);
     camera.rotation.order = 'YXZ';
@@ -253,81 +254,205 @@
     renderer.setPixelRatio(window.devicePixelRatio);
     container.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0x1a2030, 0.6);
+    // 全体的な環境光（暗すぎたのを修正）
+    const ambientLight = new THREE.AmbientLight(0x333b50, 0.9);
     scene.add(ambientLight);
 
-    const flashlight = new THREE.SpotLight(0xfff0d0, 4.0, 30, Math.PI / 4, 0.4, 1);
+    // 月光のような指向性ライト
+    const moonLight = new THREE.DirectionalLight(0x445577, 0.6);
+    moonLight.position.set(20, 50, 20);
+    scene.add(moonLight);
+
+    // 懐中電灯
+    const flashlight = new THREE.SpotLight(0xfff5e0, 4.5, 35, Math.PI / 4, 0.3, 1);
     camera.add(flashlight);
     flashlight.position.set(0, 0, 0);
     flashlight.target.position.set(0, 0, -1);
     camera.add(flashlight.target);
 
-    // 床
+    // 地面（アスファルト風）
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(200, 200),
-      new THREE.MeshStandardMaterial({ color: 0x0a0a0f, roughness: 0.9 })
+      new THREE.MeshStandardMaterial({ color: 0x15181c, roughness: 0.8 })
     );
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
 
-    // 建物と障害物＆透明な見えない壁
+    // --- 透明な壁（境界ガード）の厳密設定 ---
+    const MAP_LIMIT = { minX: -60, maxX: 60, minZ: -65, maxZ: 45 };
+
+    // --- リアルな街並み・建物生成 ---
     const buildingColliders = [];
-    const MAP_LIMIT = { minX: -65, maxX: 65, minZ: -70, maxZ: 50 };
+    const buildingRenderData = [];
 
     function buildCity() {
-      const bldgMat = new THREE.MeshStandardMaterial({ color: 0x111118, roughness: 0.8 });
-      for (let z = -65; z <= 40; z += 18) {
-        for (let x = -40; x <= 40; x += 25) {
-          if (Math.abs(x) < 8 && z > -40) continue;
-          const h = 12;
-          const bldg = new THREE.Mesh(new THREE.BoxGeometry(14, h, 14), bldgMat);
+      const bldgMat = new THREE.MeshStandardMaterial({ color: 0x1a1c24, roughness: 0.7 });
+      const roofMat = new THREE.MeshStandardMaterial({ color: 0x0f1015, roughness: 0.9 });
+      const windowMat = new THREE.MeshBasicMaterial({ color: 0xffdd88 });
+
+      for (let z = -60; z <= 35; z += 18) {
+        for (let x = -40; x <= 40; x += 22) {
+          if (Math.abs(x) < 8 && z > -35) continue; // 通路確保
+
+          const w = 12, d = 12, h = 8 + Math.random() * 6;
+          // 本体
+          const bldg = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bldgMat);
           bldg.position.set(x, h/2, z);
           scene.add(bldg);
-          buildingColliders.push({ minX: x - 7.5, maxX: x + 7.5, minZ: z - 7.5, maxZ: z + 7.5 });
+
+          // 屋根縁
+          const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 0.6, 0.4, d + 0.6), roofMat);
+          roof.position.set(x, h + 0.2, z);
+          scene.add(roof);
+
+          // 窓の明かりを追加してリアル感を出す
+          for (let wy = 2; wy < h - 1; wy += 2.5) {
+            for (let wx = -w/2 + 2; wx <= w/2 - 2; wx += 3) {
+              if (Math.random() > 0.4) {
+                const win = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.4), windowMat);
+                win.position.set(x + wx, wy, z + d/2 + 0.05);
+                scene.add(win);
+              }
+            }
+          }
+
+          // 衝突判定データ
+          buildingColliders.push({ minX: x - w/2 - 0.6, maxX: x + w/2 + 0.6, minZ: z - d/2 - 0.6, maxZ: z + d/2 + 0.6 });
+          buildingRenderData.push({ x, z, w, d });
         }
       }
+
+      // 街灯を追加
+      const poleMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+      const lampMat = new THREE.MeshBasicMaterial({ color: 0xffeeaa });
+      const streetLampPos = [
+        new THREE.Vector3(-6, 0, 15), new THREE.Vector3(6, 0, -5),
+        new THREE.Vector3(-6, 0, -25), new THREE.Vector3(6, 0, -45)
+      ];
+      streetLampPos.forEach(p => {
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 4), poleMat);
+        pole.position.set(p.x, 2, p.z);
+        scene.add(pole);
+
+        const lightBulb = new THREE.Mesh(new THREE.SphereGeometry(0.3), lampMat);
+        lightBulb.position.set(p.x, 4, p.z);
+        scene.add(lightBulb);
+
+        const pointLight = new THREE.PointLight(0xffeeaa, 1.2, 12);
+        pointLight.position.set(p.x, 3.8, p.z);
+        scene.add(pointLight);
+      });
     }
     buildCity();
 
-    // 鍵と乾電池
+    // --- リアルな『鍵』モデル作成関数 ---
+    function createKeyMesh() {
+      const group = new THREE.Group();
+      const goldMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, metalness: 0.8, roughness: 0.2 });
+
+      // 持ち手リング
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.05, 8, 16), goldMat);
+      ring.position.y = 0.35;
+      group.add(ring);
+
+      // 軸
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.5), goldMat);
+      shaft.position.y = 0.1;
+      group.add(shaft);
+
+      // 鍵山
+      const bit = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.15, 0.04), goldMat);
+      bit.position.set(0.06, -0.05, 0);
+      group.add(bit);
+
+      group.rotation.x = Math.PI / 4;
+      return group;
+    }
+
+    // --- アイテム配置（すべて広い道の上に配置） ---
     const keys = [];
+    // 確実に建物と重ならない道路上の座標
     const keyPositions = [
-      new THREE.Vector3(-30, 0.8, 15), new THREE.Vector3(30, 0.8, -10),
-      new THREE.Vector3(-15, 0.8, -40), new THREE.Vector3(30, 0.8, 25),
-      new THREE.Vector3(-30, 0.8, -25)
+      new THREE.Vector3(-6, 0.3, 10),
+      new THREE.Vector3(6, 0.3, -12),
+      new THREE.Vector3(-15, 0.3, -30),
+      new THREE.Vector3(15, 0.3, 5),
+      new THREE.Vector3(0, 0.3, -50)
     ];
 
     const batteries = [];
+    const firecrackerItems = [];
+
     function spawnItems() {
+      // 鍵のリセット
       keys.forEach(k => scene.remove(k.mesh));
       keys.length = 0;
       keyPositions.forEach(pos => {
-        const mesh = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.06, 8, 16), new THREE.MeshBasicMaterial({ color: 0xffcc00 }));
-        mesh.position.copy(pos); scene.add(mesh);
+        const mesh = createKeyMesh();
+        mesh.position.copy(pos);
+        scene.add(mesh);
         keys.push({ mesh, pos, collected: false });
       });
 
+      // 乾電池
       batteries.forEach(b => scene.remove(b.mesh));
       batteries.length = 0;
-      const batPositions = [new THREE.Vector3(-10, 0.5, 5), new THREE.Vector3(20, 0.5, -30), new THREE.Vector3(-25, 0.5, -10)];
+      const batPositions = [new THREE.Vector3(-12, 0.3, 18), new THREE.Vector3(12, 0.3, -25), new THREE.Vector3(-6, 0.3, -40)];
       batPositions.forEach(pos => {
-        const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.4), new THREE.MeshBasicMaterial({ color: 0x0088ff }));
+        const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.35), new THREE.MeshBasicMaterial({ color: 0x0088ff }));
         mesh.position.copy(pos); scene.add(mesh);
         batteries.push({ mesh, pos, collected: false });
       });
+
+      // 爆竹
+      firecrackerItems.forEach(fc => scene.remove(fc.mesh));
+      firecrackerItems.length = 0;
+      const fcPositions = [
+        new THREE.Vector3(0, 0.2, 18), new THREE.Vector3(-12, 0.2, -5),
+        new THREE.Vector3(12, 0.2, -35), new THREE.Vector3(-18, 0.2, 0)
+      ];
+      fcPositions.forEach(pos => {
+        const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.3), new THREE.MeshBasicMaterial({ color: 0xff1111 }));
+        mesh.position.copy(pos); scene.add(mesh);
+        firecrackerItems.push({ mesh, pos, collected: false });
+      });
     }
 
-    // モンスター
-    function createMonster(colorHex) {
+    // --- リアルで恐ろしいモンスター生成 ---
+    function createScaryMonster() {
       const group = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.ConeGeometry(0.5, 3.5, 6), new THREE.MeshBasicMaterial({ color: colorHex }));
-      body.rotation.x = Math.PI; body.position.y = 1.75;
+
+      // 細長く伸びた不気味な体幹
+      const bodyMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.9 });
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.1, 3.8, 8), bodyMat);
+      body.position.y = 1.9;
       group.add(body);
+
+      // 歪んだ頭部
+      const headMat = new THREE.MeshBasicMaterial({ color: 0x110000 });
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8), headMat);
+      head.position.y = 3.7;
+      head.scale.set(0.8, 1.3, 0.8);
+      group.add(head);
+
+      // ギョロリと赤く光る目（左右）
+      const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+      const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.08), eyeMat);
+      eyeL.position.set(-0.15, 3.8, 0.3);
+      const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.08), eyeMat);
+      eyeR.position.set(0.15, 3.8, 0.3);
+      group.add(eyeL); group.add(eyeR);
+
+      // 赤く光るオーラライト
+      const monsterLight = new THREE.PointLight(0xff0000, 1.5, 6);
+      monsterLight.position.set(0, 3.5, 0);
+      group.add(monsterLight);
+
       scene.add(group);
       return { group, pos: group.position, isStunned: false, stunTimer: 0 };
     }
 
-    const monsters = [ createMonster(0xff0000), createMonster(0xff00bb) ];
+    const monsters = [ createScaryMonster(), createScaryMonster() ];
 
     // ゲーム状態
     let isPlaying = false, isPaused = false, isChanceTime = false;
@@ -351,7 +476,7 @@
         { text: "🎆 爆竹を2個獲得！", act: () => { firecrackers += 2; updateUI(); } },
         { text: "📡 敵の位置を10秒間可視化！", act: () => { revealEnemiesTimer = 10.0; } },
         { text: "🔋 バッテリー全回復！", act: () => { battery = 100; } },
-        { text: "⚠️ ハズレ！敵が近くに接近！", act: () => { monsters[0].pos.set(player.position.x + 6, 0, player.position.z + 6); } }
+        { text: "⚠️ ハズレ！モンスターが至近距離に！", act: () => { monsters[0].pos.set(player.position.x + 5, 0, player.position.z + 5); } }
       ];
       const res = options[Math.floor(Math.random() * options.length)];
       document.getElementById('chance-result').textContent = res.text;
@@ -387,12 +512,16 @@
         isCrouching = !isCrouching;
         player.position.y = isCrouching ? 0.8 : 1.6;
       }
-      if (e.code === 'KeyF' && firecrackers > 0) {
-        firecrackers--;
-        updateUI();
-        showMsg("爆竹を使用！敵を一時的に麻痺！");
-        audio.playSE(800, 0.4, 'square');
-        monsters.forEach(m => { m.isStunned = true; m.stunTimer = 6.0; });
+      if (e.code === 'KeyF') {
+        if (firecrackers > 0) {
+          firecrackers--;
+          updateUI();
+          showMsg("爆竹を使用！爆音で怪物たちが麻痺！");
+          audio.playSE(900, 0.5, 'sawtooth');
+          monsters.forEach(m => { m.isStunned = true; m.stunTimer = 6.0; });
+        } else {
+          showMsg("爆竹を持っていません！");
+        }
       }
       if (e.code === 'Escape') togglePause();
     });
@@ -420,12 +549,12 @@
     }
     document.getElementById('resume-btn').onclick = togglePause;
 
-    // ゲーム開始・終了
+    // ゲーム開始・リセット
     function startGame() {
       isPlaying = true; isPaused = false; keysCount = 0; stamina = 100; battery = 100; playTime = 0; firecrackers = 0;
       player.position.set(0, 1.6, 25);
-      monsters[0].pos.set(0, 0, -50);
-      monsters[1].pos.set(-25, 0, -10);
+      monsters[0].pos.set(0, 0, -45);
+      monsters[1].pos.set(-20, 0, -10);
       spawnItems(); updateUI();
       document.getElementById('title-screen').style.display = 'none';
       document.getElementById('ui').style.display = 'block';
@@ -461,15 +590,15 @@
       isPlaying = false;
       document.exitPointerLock();
       document.getElementById('jumpscare-overlay').style.display = 'flex';
-      audio.playSE(100, 1.2, 'sawtooth');
+      audio.playSE(80, 1.5, 'sawtooth');
       setTimeout(() => {
         document.getElementById('jumpscare-overlay').style.display = 'none';
         document.getElementById('gameover-overlay').style.display = 'flex';
-      }, 1200);
+      }, 1300);
     }
 
     function checkWin() {
-      if (player.position.z < -55 && keysCount >= keyPositions.length) {
+      if (player.position.z < -58 && keysCount >= keyPositions.length) {
         isPlaying = false;
         document.exitPointerLock();
         let rank = 'S';
@@ -481,7 +610,7 @@
       }
     }
 
-    // メインアニメーションループ
+    // メイン更新ループ
     let lastTime = performance.now();
 
     function animate() {
@@ -490,23 +619,28 @@
       const delta = Math.min((now - lastTime) / 1000, 0.1);
       lastTime = now;
 
+      // 鍵の回転アニメーション
+      keys.forEach(k => {
+        if (!k.collected) k.mesh.rotation.y += delta * 2.0;
+      });
+
       renderer.render(scene, camera);
 
       if (!isPlaying || isPaused || isChanceTime) return;
 
       // バッテリー消費
       if (battery > 0) {
-        battery -= delta * 1.0;
-        flashlight.intensity = (battery / 100) * 4.0;
+        battery -= delta * 0.8;
+        flashlight.intensity = (battery / 100) * 4.5;
       } else {
-        flashlight.intensity = 0.1;
+        flashlight.intensity = 0.15;
       }
 
-      // 移動・スタミナ
-      let speed = 4.5;
-      if (isCrouching) speed = 2.0;
+      // 移動＆スタミナ
+      let speed = 4.8;
+      if (isCrouching) speed = 2.2;
       else if (isSprinting && stamina > 0 && (moveF||moveB||moveL||moveR)) {
-        speed = 8.0; stamina -= delta * 25;
+        speed = 8.5; stamina -= delta * 25;
       } else if (stamina < 100) {
         stamina += delta * 15;
       }
@@ -519,11 +653,17 @@
       const nextX = player.position.x + moveDir.x * speed * delta;
       const nextZ = player.position.z + moveDir.z * speed * delta;
 
-      // 衝突判定 (障害物 & 見えない外壁)
+      // --- 厳密な衝突判定 (建物 & 透明な壁) ---
       let collide = false;
+
+      // 1. 建物
       for (let b of buildingColliders) {
-        if (nextX > b.minX && nextX < b.maxX && nextZ > b.minZ && nextZ < b.maxZ) { collide = true; break; }
+        if (nextX > b.minX && nextX < b.maxX && nextZ > b.minZ && nextZ < b.maxZ) {
+          collide = true; break;
+        }
       }
+
+      // 2. 透明な壁（境界線ガード）
       if (nextX < MAP_LIMIT.minX || nextX > MAP_LIMIT.maxX || nextZ < MAP_LIMIT.minZ || nextZ > MAP_LIMIT.maxZ) {
         collide = true;
       }
@@ -533,11 +673,11 @@
         player.position.z = nextZ;
       }
 
-      // アイテム取得判定
+      // アイテム収集判定
       keys.forEach(k => {
-        if (!k.collected && player.position.distanceTo(k.pos) < 1.5) {
+        if (!k.collected && player.position.distanceTo(k.pos) < 1.6) {
           k.collected = true; scene.remove(k.mesh); keysCount++;
-          showMsg("鍵を獲得した！"); audio.playSE(600, 0.3);
+          showMsg("黄金の鍵を獲得した！"); audio.playSE(650, 0.3);
           if (keysCount === 2) triggerChanceTime();
           updateUI();
         }
@@ -546,11 +686,18 @@
       batteries.forEach(b => {
         if (!b.collected && player.position.distanceTo(b.pos) < 1.5) {
           b.collected = true; scene.remove(b.mesh); battery = Math.min(100, battery + 50);
-          showMsg("乾電池を獲得！バッテリー回復！"); audio.playSE(400, 0.2); updateUI();
+          showMsg("乾電池を獲得！ライト回復！"); audio.playSE(450, 0.2); updateUI();
         }
       });
 
-      // モンスターAI
+      firecrackerItems.forEach(fc => {
+        if (!fc.collected && player.position.distanceTo(fc.pos) < 1.5) {
+          fc.collected = true; scene.remove(fc.mesh); firecrackers++;
+          showMsg("爆竹を拾った！ [F]キーで投擲"); audio.playSE(750, 0.2); updateUI();
+        }
+      });
+
+      // モンスターAI＆挙動
       if (revealEnemiesTimer > 0) revealEnemiesTimer -= delta;
 
       monsters.forEach(m => {
@@ -561,15 +708,19 @@
         }
 
         const dist = m.pos.distanceTo(player.position);
-        let detectDist = (18 * diffParams.detectMult) * (isCrouching ? 0.4 : 1.0);
+        let detectDist = (20 * diffParams.detectMult) * (isCrouching ? 0.35 : 1.0);
 
         if (dist < detectDist) {
+          // 不気味にゆらゆら揺れながら接近
           const dir = new THREE.Vector3().subVectors(player.position, m.pos).normalize();
-          m.pos.add(dir.multiplyScalar(3.0 * diffParams.speedMult * delta));
-          if (dist < 10) audio.playHeartbeat();
+          m.pos.add(dir.multiplyScalar(3.2 * diffParams.speedMult * delta));
+          m.group.rotation.y = Math.atan2(dir.x, dir.z);
+          m.group.position.y = Math.sin(now * 0.005) * 0.2;
+
+          if (dist < 12) audio.playHeartbeat();
         }
 
-        if (dist < 1.2) triggerJumpscare();
+        if (dist < 1.3) triggerJumpscare();
       });
 
       checkWin();
@@ -577,50 +728,65 @@
       updateUI();
     }
 
-    // ミニマップ描画
+    // --- 的確になったミニマップ描画 ---
     const miniCanvas = document.getElementById('minimap-canvas');
     const miniCtx = miniCanvas.getContext('2d');
 
     function updateMinimap() {
-      miniCtx.clearRect(0, 0, 140, 140);
-      const cx = 70, cy = 70, scale = 1.2;
+      miniCtx.clearRect(0, 0, 160, 160);
+      const cx = 80, cy = 80, scale = 1.3;
 
-      // プレイヤー
-      miniCtx.fillStyle = '#00ff88';
-      miniCtx.beginPath(); miniCtx.arc(cx, cy, 4, 0, Math.PI*2); miniCtx.fill();
+      // 1. 建物（障壁）を描画
+      miniCtx.fillStyle = '#222530';
+      buildingRenderData.forEach(b => {
+        const dx = (b.x - player.position.x) * scale;
+        const dz = (b.z - player.position.z) * scale;
+        const w = b.w * scale, d = b.d * scale;
+        miniCtx.fillRect(cx + dx - w/2, cy + dz - d/2, w, d);
+      });
 
-      // 鍵
+      // 2. 鍵（ゴールド）
       miniCtx.fillStyle = '#ffcc00';
       keys.forEach(k => {
         if (!k.collected) {
           const dx = (k.pos.x - player.position.x) * scale;
           const dz = (k.pos.z - player.position.z) * scale;
-          if (Math.hypot(dx, dz) < 60) {
-            miniCtx.beginPath(); miniCtx.arc(cx + dx, cy + dz, 3, 0, Math.PI*2); miniCtx.fill();
+          if (Math.hypot(dx, dz) < 70) {
+            miniCtx.beginPath(); miniCtx.arc(cx + dx, cy + dz, 3.5, 0, Math.PI*2); miniCtx.fill();
           }
         }
       });
 
-      // モンスター
+      // 3. モンスター（赤）
       monsters.forEach(m => {
         const dx = (m.pos.x - player.position.x) * scale;
         const dz = (m.pos.z - player.position.z) * scale;
         const dist = Math.hypot(dx, dz);
-        if (dist < 60 && (dist < 18 || revealEnemiesTimer > 0)) {
+        if (dist < 70 && (dist < 20 || revealEnemiesTimer > 0)) {
           miniCtx.fillStyle = '#ff0000';
-          miniCtx.beginPath(); miniCtx.arc(cx + dx, cy + dz, 4, 0, Math.PI*2); miniCtx.fill();
+          miniCtx.beginPath(); miniCtx.arc(cx + dx, cy + dz, 4.5, 0, Math.PI*2); miniCtx.fill();
         }
       });
+
+      // 4. プレイヤー（中心の緑矢印）
+      miniCtx.save();
+      miniCtx.translate(cx, cy);
+      miniCtx.rotate(-player.rotation.y);
+      miniCtx.fillStyle = '#00ff88';
+      miniCtx.beginPath();
+      miniCtx.moveTo(0, -6); miniCtx.lineTo(4, 5); miniCtx.lineTo(-4, 5);
+      miniCtx.closePath(); miniCtx.fill();
+      miniCtx.restore();
     }
 
-    // ウィンドウリサイズ対応
+    // リサイズ対応
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // ループ開始
+    // ループスタート
     animate();
   </script>
 </body>
