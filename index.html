@@ -61,6 +61,13 @@
     #stamina-bar { background: #00b359; }
     #battery-bar { background: #0088ff; }
 
+    #interact-prompt {
+      position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%);
+      color: #ffcc00; font-size: 16px; font-weight: bold; letter-spacing: 2px;
+      background: rgba(0, 0, 0, 0.7); padding: 6px 16px; border: 1px solid #ffcc00;
+      border-radius: 4px; display: none; z-index: 20; pointer-events: none;
+    }
+
     #minimap-container {
       position: absolute; bottom: 20px; right: 20px; width: 160px; height: 160px;
       background: rgba(5, 5, 10, 0.9); border: 2px solid #666; border-radius: 50%;
@@ -113,6 +120,7 @@
 
   <div id="vhs-overlay"></div>
   <div id="crosshair"></div>
+  <div id="interact-prompt">[E] アイテムを拾う</div>
 
   <div id="jumpscare-overlay">
     <div class="jumpscare-face">💀</div>
@@ -132,7 +140,7 @@
       <div style="margin-top:4px;">BATTERY</div>
       <div class="bar-bg"><div id="battery-bar" class="bar-fill"></div></div>
     </div>
-    <div id="crouch-status" style="font-size:10px; color:#aaa;">[Ctrl/C] しゃがみ | [Esc] ポーズ</div>
+    <div id="crouch-status" style="font-size:10px; color:#aaa;">[Ctrl/C] しゃがみ | [E] 拾う | [Esc] ポーズ</div>
   </div>
 
   <div id="minimap-container"><canvas id="minimap-canvas" width="160" height="160"></canvas></div>
@@ -168,7 +176,7 @@
     <button class="btn-action" id="start-btn">街 に 入 る</button>
     <div style="font-size:11px; color:#777; margin-top:20px; line-height:1.6; text-align:center;">
       [W/A/S/D] 移動 | [Shift] ダッシュ | [Ctrl/C] しゃがみ隠れる<br>
-      [F] 爆竹使用（道で拾って敵を麻痺）| 道の上の金色の『鍵』を5つ探せ！
+      [E] アイテム取得 | [F] 爆竹使用（怪物麻痺）| 金色の『鍵』を5つ探せ！
     </div>
   </div>
 
@@ -369,7 +377,7 @@
     const batteries = [];
     const firecrackerItems = [];
 
-    // --- アイテム生成（障害物を避けて道路上に設置） ---
+    // --- アイテム生成 ---
     function spawnItems() {
       keys.forEach(k => scene.remove(k.mesh));
       keys.length = 0;
@@ -380,7 +388,6 @@
         keys.push({ mesh, pos, collected: false });
       });
 
-      // リアル乾電池モデル
       function createBatteryMesh() {
         const group = new THREE.Group();
         const bodyMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8, roughness: 0.3 });
@@ -416,7 +423,6 @@
         batteries.push({ mesh, pos, collected: false });
       });
 
-      // リアル爆竹モデル
       function createFirecrackerMesh() {
         const group = new THREE.Group();
         const redMat = new THREE.MeshStandardMaterial({ color: 0xcc1111, roughness: 0.5 });
@@ -495,6 +501,7 @@
     let isCrouching = false, isSprinting = false;
     let keysCount = 0;
     let revealEnemiesTimer = 0;
+    let nearbyItemAction = null; // 近くにあるアイテムの取得用アクション
 
     let moveF = false, moveB = false, moveL = false, moveR = false;
 
@@ -546,6 +553,13 @@
       if (e.code === 'ControlLeft' || e.code === 'KeyC') {
         isCrouching = !isCrouching;
         player.position.y = isCrouching ? 0.8 : 1.6;
+      }
+      if (e.code === 'KeyE') {
+        if (nearbyItemAction) {
+          nearbyItemAction();
+          nearbyItemAction = null;
+          document.getElementById('interact-prompt').style.display = 'none';
+        }
       }
       if (e.code === 'KeyF') {
         if (firecrackers > 0) {
@@ -618,11 +632,13 @@
       document.getElementById('ui').style.display = 'none';
       document.getElementById('minimap-container').style.display = 'none';
       document.getElementById('crosshair').style.display = 'none';
+      document.getElementById('interact-prompt').style.display = 'none';
     }
 
     function triggerJumpscare() {
       isPlaying = false;
       document.exitPointerLock();
+      document.getElementById('interact-prompt').style.display = 'none';
       document.getElementById('jumpscare-overlay').style.display = 'flex';
       audio.playSE(80, 1.5, 'sawtooth');
       setTimeout(() => {
@@ -635,6 +651,7 @@
       if (player.position.z < -58 && keysCount >= keyPositions.length) {
         isPlaying = false;
         document.exitPointerLock();
+        document.getElementById('interact-prompt').style.display = 'none';
         let rank = 'S';
         if (playTime > 90) rank = 'A';
         if (playTime > 150) rank = 'B';
@@ -698,32 +715,57 @@
         player.position.z = nextZ;
       }
 
-      // アイテム取得判定
+      // --- アイテム取得チェック ([E]キーで取得) ---
+      nearbyItemAction = null;
+      let promptText = "";
+
       keys.forEach(k => {
-        if (!k.collected && player.position.distanceTo(k.pos) < 1.6) {
-          k.collected = true; scene.remove(k.mesh); keysCount++;
-          showMsg("黄金の鍵を獲得した！"); audio.playSE(650, 0.3);
-          if (keysCount === 2) triggerChanceTime();
-          updateUI();
+        if (!k.collected && player.position.distanceTo(k.pos) < 2.2) {
+          promptText = "[E] 鍵を拾う";
+          nearbyItemAction = () => {
+            k.collected = true; scene.remove(k.mesh); keysCount++;
+            showMsg("黄金の鍵を獲得した！"); audio.playSE(650, 0.3);
+            if (keysCount === 2) triggerChanceTime();
+            updateUI();
+          };
         }
       });
 
-      batteries.forEach(b => {
-        if (!b.collected && player.position.distanceTo(b.pos) < 1.5) {
-          b.collected = true; scene.remove(b.mesh); battery = Math.min(100, battery + 50);
-          showMsg("乾電池を獲得！ライト回復！"); audio.playSE(450, 0.2); updateUI();
-        }
-      });
+      if (!nearbyItemAction) {
+        batteries.forEach(b => {
+          if (!b.collected && player.position.distanceTo(b.pos) < 2.0) {
+            promptText = "[E] 乾電池を拾う";
+            nearbyItemAction = () => {
+              b.collected = true; scene.remove(b.mesh); battery = Math.min(100, battery + 50);
+              showMsg("乾電池を獲得！ライト回復！"); audio.playSE(450, 0.2); updateUI();
+            };
+          }
+        });
+      }
 
-      firecrackerItems.forEach(fc => {
-        if (!fc.collected && player.position.distanceTo(fc.pos) < 1.5) {
-          fc.collected = true; scene.remove(fc.mesh); firecrackers++;
-          showMsg("爆竹を拾った！ [F]キーで投擲"); audio.playSE(750, 0.2); updateUI();
-        }
-      });
+      if (!nearbyItemAction) {
+        firecrackerItems.forEach(fc => {
+          if (!fc.collected && player.position.distanceTo(fc.pos) < 2.0) {
+            promptText = "[E] 爆竹を拾う";
+            nearbyItemAction = () => {
+              fc.collected = true; scene.remove(fc.mesh); firecrackers++;
+              showMsg("爆竹を拾った！ [F]キーで投擲"); audio.playSE(750, 0.2); updateUI();
+            };
+          }
+        });
+      }
+
+      const promptEl = document.getElementById('interact-prompt');
+      if (nearbyItemAction) {
+        promptEl.textContent = promptText;
+        promptEl.style.display = 'block';
+      } else {
+        promptEl.style.display = 'none';
+      }
 
       if (revealEnemiesTimer > 0) revealEnemiesTimer -= delta;
 
+      // --- モンスターの移動・接触判定（シンプル化） ---
       monsters.forEach(m => {
         if (m.isStunned) {
           m.stunTimer -= delta;
@@ -743,7 +785,8 @@
           if (dist < 12) audio.playHeartbeat();
         }
 
-        if (dist < 1.3) triggerJumpscare();
+        // 接触したらシンプルに即ゲームオーバー
+        if (dist < 1.6) triggerJumpscare();
       });
 
       checkWin();
