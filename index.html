@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>死の市 - Stage Advance Edition</title>
+  <title>死の市 - Real Item Edition</title>
   <style>
     * { box-sizing: border-box; }
     html, body {
@@ -129,7 +129,7 @@
 
   <div id="ui">
     <div class="hud-box">
-      <div>『死の市』 <span id="level-display" style="color:#00ff88;">LEVEL 1</span></div>
+      <div>『死の市』逃走領域</div>
       <div style="margin-top:2px;">鍵: <span id="key-count" style="color:#ffcc00; font-weight:bold;">0 / 5</span></div>
       <div>爆竹 [F]: <span id="firecracker-count" style="color:#ff3333; font-weight:bold;">0</span> 個</div>
       <div>TIME: <span id="timer-display">00:00</span></div>
@@ -140,7 +140,7 @@
       <div style="margin-top:4px;">BATTERY</div>
       <div class="bar-bg"><div id="battery-bar" class="bar-fill"></div></div>
     </div>
-    <div id="crouch-status" style="font-size:10px; color:#aaa;">[Ctrl/C] しゃがみ | [E] 拾う/脱出 | [Esc] ポーズ</div>
+    <div id="crouch-status" style="font-size:10px; color:#aaa;">[Ctrl/C] しゃがみ | [E] 拾う | [Esc] ポーズ</div>
   </div>
 
   <div id="minimap-container"><canvas id="minimap-canvas" width="160" height="160"></canvas></div>
@@ -165,7 +165,7 @@
 
   <div id="title-screen">
     <div style="font-size:64px; color:#b30000; font-weight:bold; letter-spacing:10px;">死 の 市</div>
-    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- STAGE ADVANCE EDITION -</div>
+    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- REALISTIC ITEM & FIX EDITION -</div>
     
     <div class="diff-selector">
       <button class="diff-btn" onclick="setDifficulty('easy', this)">EASY</button>
@@ -176,7 +176,7 @@
     <button class="btn-action" id="start-btn">街 に 入 る</button>
     <div style="font-size:11px; color:#777; margin-top:20px; line-height:1.6; text-align:center;">
       [W/A/S/D] 移動 | [Shift] ダッシュ | [Ctrl/C] しゃがみ隠れる<br>
-      鍵を5つ集めて『中央のポータル』から脱出せよ！
+      [E] アイテム取得 | [F] 爆竹使用（怪物麻痺）| 金色の『鍵』を5つ探せ！
     </div>
   </div>
 
@@ -187,11 +187,11 @@
   </div>
 
   <div id="clear-overlay">
-    <div style="font-size:54px; color:#00ff88; font-weight:bold;">STAGE CLEAR!</div>
-    <div style="margin:10px 0; color:#eee;">中央の扉を抜け、LV2の深淵へ進む...</div>
+    <div style="font-size:54px; color:#00ff88; font-weight:bold;">E S C A P E D</div>
+    <div style="margin:10px 0; color:#eee;">脱出成功！</div>
     <div style="font-size:20px; color:#ffcc00;" id="clear-rank">RANK: S</div>
     <div style="font-size:14px; color:#aaa; margin-bottom:20px;" id="clear-time-text">TIME: 00:00</div>
-    <button class="btn-action" onclick="nextLevel()">NEXT LEVEL (LV2)</button>
+    <button class="btn-action" onclick="returnToTitle()">タイトルへ戻る</button>
   </div>
 
   <div id="canvas-container"></div>
@@ -225,9 +225,8 @@
     }
     const audio = new HorrorAudio();
 
-    // --- ゲーム難易度・レベル設定 ---
+    // --- ゲーム難易度設定 ---
     let difficulty = 'normal';
-    let currentLevel = 1;
     let diffParams = { speedMult: 1.0, detectMult: 1.0 };
 
     function setDifficulty(diff, btn) {
@@ -286,33 +285,6 @@
 
     const MAP_LIMIT = { minX: -60, maxX: 60, minZ: -65, maxZ: 45 };
 
-    // --- マップ中央のゴール門 (Goal Portal) ---
-    const goalGroup = new THREE.Group();
-    const portalMat = new THREE.MeshBasicMaterial({ color: 0x0088ff, wireframe: true });
-    const portalCoreMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.6 });
-    
-    // 柱
-    const pillarMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5 });
-    const pillarL = new THREE.Mesh(new THREE.BoxGeometry(0.6, 4, 0.6), pillarMat);
-    pillarL.position.set(-1.8, 2, 0);
-    const pillarR = new THREE.Mesh(new THREE.BoxGeometry(0.6, 4, 0.6), pillarMat);
-    pillarR.position.set(1.8, 2, 0);
-    const topBeam = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.6, 0.6), pillarMat);
-    topBeam.position.set(0, 4.1, 0);
-    
-    // 光るゲートコア
-    const portalCore = new THREE.Mesh(new THREE.PlaneGeometry(3, 3.8), portalCoreMat);
-    portalCore.position.set(0, 2, 0);
-    
-    goalGroup.add(pillarL, pillarR, topBeam, portalCore);
-    
-    const goalLight = new THREE.PointLight(0x0088ff, 2, 10);
-    goalLight.position.set(0, 2, 0);
-    goalGroup.add(goalLight);
-    
-    goalGroup.position.set(0, 0, 0); // 中央に設置
-    scene.add(goalGroup);
-
     // --- 街並み・建物生成 ---
     const buildingColliders = [];
     const buildingRenderData = [];
@@ -324,8 +296,7 @@
 
       for (let z = -60; z <= 35; z += 18) {
         for (let x = -40; x <= 40; x += 22) {
-          // ゴール領域（中央(0,0)周辺）には建物を建てない
-          if (Math.abs(x) < 10 && Math.abs(z) < 10) continue;
+          if (Math.abs(x) < 8 && z > -35) continue;
 
           const w = 12, d = 12, h = 8 + Math.random() * 6;
           const bldg = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bldgMat);
@@ -354,8 +325,8 @@
       const poleMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
       const lampMat = new THREE.MeshBasicMaterial({ color: 0xffeeaa });
       const streetLampPos = [
-        new THREE.Vector3(-8, 0, 15), new THREE.Vector3(8, 0, -15),
-        new THREE.Vector3(-15, 0, -25), new THREE.Vector3(15, 0, -45)
+        new THREE.Vector3(-6, 0, 15), new THREE.Vector3(6, 0, -5),
+        new THREE.Vector3(-6, 0, -25), new THREE.Vector3(6, 0, -45)
       ];
       streetLampPos.forEach(p => {
         const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 4), poleMat);
@@ -398,7 +369,7 @@
     const keyPositions = [
       new THREE.Vector3(-35, 0.3, -55),
       new THREE.Vector3(35, 0.3, -45),
-      new THREE.Vector3(-15, 0.3, -20),
+      new THREE.Vector3(-6, 0.3, -15),
       new THREE.Vector3(-25, 0.3, 15),
       new THREE.Vector3(25, 0.3, 20)
     ];
@@ -441,8 +412,8 @@
       batteries.forEach(b => scene.remove(b.mesh));
       batteries.length = 0;
       const batPositions = [
-        new THREE.Vector3(-6, 0.1, 12),
-        new THREE.Vector3(12, 0.1, -20),
+        new THREE.Vector3(-6, 0.1, 8),
+        new THREE.Vector3(6, 0.1, -20),
         new THREE.Vector3(-25, 0.1, -35),
         new THREE.Vector3(25, 0.1, -10)
       ];
@@ -530,7 +501,7 @@
     let isCrouching = false, isSprinting = false;
     let keysCount = 0;
     let revealEnemiesTimer = 0;
-    let nearbyItemAction = null;
+    let nearbyItemAction = null; // 近くにあるアイテムの取得用アクション
 
     let moveF = false, moveB = false, moveL = false, moveR = false;
 
@@ -570,7 +541,6 @@
       document.getElementById('firecracker-count').textContent = firecrackers;
       document.getElementById('stamina-bar').style.width = `${stamina}%`;
       document.getElementById('battery-bar').style.width = `${battery}%`;
-      document.getElementById('level-display').textContent = `LEVEL ${currentLevel}`;
     }
 
     // キーボード操作
@@ -629,37 +599,17 @@
     document.getElementById('resume-btn').onclick = togglePause;
 
     function startGame() {
-      currentLevel = 1;
-      initLevel();
+      isPlaying = true; isPaused = false; keysCount = 0; stamina = 100; battery = 100; playTime = 0; firecrackers = 0;
+      player.position.set(0, 1.6, 25);
+      monsters[0].pos.set(0, 0, -45);
+      monsters[1].pos.set(-20, 0, -10);
+      spawnItems(); updateUI();
       document.getElementById('title-screen').style.display = 'none';
       document.getElementById('ui').style.display = 'block';
       document.getElementById('minimap-container').style.display = 'block';
       document.getElementById('crosshair').style.display = 'block';
       audio.init();
       document.body.requestPointerLock();
-    }
-
-    function initLevel() {
-      isPlaying = true; isPaused = false; keysCount = 0; stamina = 100; battery = 100; playTime = 0; firecrackers = 0;
-      player.position.set(0, 1.6, 25);
-      monsters[0].pos.set(0, 0, -45);
-      monsters[1].pos.set(-20, 0, -10);
-      
-      // ゴールの光のリセット
-      goalLight.color.setHex(0x0088ff);
-      portalCoreMat.color.setHex(0x00ffff);
-
-      // LEVEL 2 時の環境変化
-      if (currentLevel >= 2) {
-        scene.fog.density = 0.04;
-        ambientLight.intensity = 0.3;
-        showMsg("LEVEL 2: 闇が深まり、モンスターの速度が上昇！");
-      } else {
-        scene.fog.density = 0.025;
-        ambientLight.intensity = 0.9;
-      }
-
-      spawnItems(); updateUI();
 
       clearInterval(timerInterval);
       timerInterval = setInterval(() => {
@@ -671,14 +621,6 @@
         }
       }, 1000);
     }
-
-    function nextLevel() {
-      currentLevel++;
-      document.getElementById('clear-overlay').style.display = 'none';
-      initLevel();
-      document.body.requestPointerLock();
-    }
-
     document.getElementById('start-btn').onclick = startGame;
 
     function returnToTitle() {
@@ -705,16 +647,18 @@
       }, 1300);
     }
 
-    function triggerClear() {
-      isPlaying = false;
-      document.exitPointerLock();
-      document.getElementById('interact-prompt').style.display = 'none';
-      let rank = 'S';
-      if (playTime > 90) rank = 'A';
-      if (playTime > 150) rank = 'B';
-      document.getElementById('clear-rank').textContent = `RANK: ${rank}`;
-      document.getElementById('clear-time-text').textContent = `TIME: ${document.getElementById('timer-display').textContent}`;
-      document.getElementById('clear-overlay').style.display = 'flex';
+    function checkWin() {
+      if (player.position.z < -58 && keysCount >= keyPositions.length) {
+        isPlaying = false;
+        document.exitPointerLock();
+        document.getElementById('interact-prompt').style.display = 'none';
+        let rank = 'S';
+        if (playTime > 90) rank = 'A';
+        if (playTime > 150) rank = 'B';
+        document.getElementById('clear-rank').textContent = `RANK: ${rank}`;
+        document.getElementById('clear-time-text').textContent = `TIME: ${document.getElementById('timer-display').textContent}`;
+        document.getElementById('clear-overlay').style.display = 'flex';
+      }
     }
 
     let lastTime = performance.now();
@@ -724,9 +668,6 @@
       const now = performance.now();
       const delta = Math.min((now - lastTime) / 1000, 0.1);
       lastTime = now;
-
-      // ゴールポータルの回転演出
-      portalCore.rotation.z += delta * 0.5;
 
       keys.forEach(k => {
         if (!k.collected) k.mesh.rotation.y += delta * 2.0;
@@ -774,42 +715,22 @@
         player.position.z = nextZ;
       }
 
-      // --- インタラクトチェック（アイテム・ゴール） ---
+      // --- アイテム取得チェック ([E]キーで取得) ---
       nearbyItemAction = null;
       let promptText = "";
 
-      // 1. 中央ゴールの判定
-      const distToGoal = player.position.distanceTo(goalGroup.position);
-      if (distToGoal < 3.0) {
-        if (keysCount >= keyPositions.length) {
-          promptText = "[E] 脱出する (Lv2へ)";
-          nearbyItemAction = () => { triggerClear(); };
-        } else {
-          promptText = `鍵が不足しています (${keysCount}/${keyPositions.length})`;
+      keys.forEach(k => {
+        if (!k.collected && player.position.distanceTo(k.pos) < 2.2) {
+          promptText = "[E] 鍵を拾う";
+          nearbyItemAction = () => {
+            k.collected = true; scene.remove(k.mesh); keysCount++;
+            showMsg("黄金の鍵を獲得した！"); audio.playSE(650, 0.3);
+            if (keysCount === 2) triggerChanceTime();
+            updateUI();
+          };
         }
-      }
+      });
 
-      // 2. 鍵の判定
-      if (!nearbyItemAction) {
-        keys.forEach(k => {
-          if (!k.collected && player.position.distanceTo(k.pos) < 2.2) {
-            promptText = "[E] 鍵を拾う";
-            nearbyItemAction = () => {
-              k.collected = true; scene.remove(k.mesh); keysCount++;
-              showMsg("黄金の鍵を獲得した！"); audio.playSE(650, 0.3);
-              if (keysCount === 2) triggerChanceTime();
-              if (keysCount === keyPositions.length) {
-                showMsg("鍵が5つ揃った！中央のゴールが開いた！");
-                goalLight.color.setHex(0x00ff88);
-                portalCoreMat.color.setHex(0x00ff88);
-              }
-              updateUI();
-            };
-          }
-        });
-      }
-
-      // 3. 乾電池の判定
       if (!nearbyItemAction) {
         batteries.forEach(b => {
           if (!b.collected && player.position.distanceTo(b.pos) < 2.0) {
@@ -822,7 +743,6 @@
         });
       }
 
-      // 4. 爆竹の判定
       if (!nearbyItemAction) {
         firecrackerItems.forEach(fc => {
           if (!fc.collected && player.position.distanceTo(fc.pos) < 2.0) {
@@ -836,7 +756,7 @@
       }
 
       const promptEl = document.getElementById('interact-prompt');
-      if (promptText !== "") {
+      if (nearbyItemAction) {
         promptEl.textContent = promptText;
         promptEl.style.display = 'block';
       } else {
@@ -845,8 +765,7 @@
 
       if (revealEnemiesTimer > 0) revealEnemiesTimer -= delta;
 
-      // --- モンスター移動・捕獲 ---
-      const levelSpeedBonus = (currentLevel - 1) * 0.8;
+      // --- モンスターの移動・接触判定（シンプル化） ---
       monsters.forEach(m => {
         if (m.isStunned) {
           m.stunTimer -= delta;
@@ -859,16 +778,18 @@
 
         if (dist < detectDist) {
           const dir = new THREE.Vector3().subVectors(player.position, m.pos).normalize();
-          m.pos.add(dir.multiplyScalar((4.1 + levelSpeedBonus) * diffParams.speedMult * delta));
+          m.pos.add(dir.multiplyScalar(4.1 * diffParams.speedMult * delta));
           m.group.rotation.y = Math.atan2(dir.x, dir.z);
           m.group.position.y = Math.sin(now * 0.005) * 0.2;
 
           if (dist < 12) audio.playHeartbeat();
         }
 
+        // 接触したらシンプルに即ゲームオーバー
         if (dist < 1.6) triggerJumpscare();
       });
 
+      checkWin();
       updateMinimap();
       updateUI();
     }
@@ -887,12 +808,6 @@
         const w = b.w * scale, d = b.d * scale;
         miniCtx.fillRect(cx + dx - w/2, cy + dz - d/2, w, d);
       });
-
-      // 中央ゴールアイコン
-      const gdx = (goalGroup.position.x - player.position.x) * scale;
-      const gdz = (goalGroup.position.z - player.position.z) * scale;
-      miniCtx.fillStyle = keysCount >= keyPositions.length ? '#00ff88' : '#0088ff';
-      miniCtx.fillRect(cx + gdx - 4, cy + gdz - 4, 8, 8);
 
       miniCtx.fillStyle = '#ffcc00';
       keys.forEach(k => {
