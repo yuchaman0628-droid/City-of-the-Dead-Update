@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>死の市 - Ultimate Horror Edition 2.0</title>
+  <title>死の市 - Real Item Edition</title>
   <style>
     * { box-sizing: border-box; }
     html, body {
@@ -21,23 +21,23 @@
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       pointer-events: none;
       background: repeating-linear-gradient(0deg, rgba(0,0,0,0.08), rgba(0,0,0,0.08) 1px, transparent 1px, transparent 2px);
-      box-shadow: inset 0 0 140px rgba(0,0,0,0.9);
+      box-shadow: inset 0 0 120px rgba(0,0,0,0.85);
       z-index: 10;
     }
 
     #jumpscare-overlay {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: radial-gradient(circle, rgba(220,0,0,0.95) 0%, rgba(0,0,0,1) 80%);
+      background: radial-gradient(circle, rgba(200,0,0,0.95) 0%, rgba(0,0,0,1) 80%);
       display: none; justify-content: center; align-items: center;
       flex-direction: column; z-index: 60;
     }
     .jumpscare-face {
       font-size: 160px; text-shadow: 0 0 60px #f00, 0 0 120px #ff0000;
-      animation: scareZoom 0.08s infinite alternate;
+      animation: scareZoom 0.1s infinite alternate;
     }
     @keyframes scareZoom {
-      0% { transform: scale(1) rotate(-8deg); }
-      100% { transform: scale(1.5) rotate(8deg); }
+      0% { transform: scale(1) rotate(-5deg); }
+      100% { transform: scale(1.4) rotate(5deg); }
     }
 
     #crosshair {
@@ -121,7 +121,7 @@
 
   <div id="ui">
     <div class="hud-box">
-      <div>『死の市』逃走領域 v2.0</div>
+      <div>『死の市』逃走領域</div>
       <div style="margin-top:2px;">鍵: <span id="key-count" style="color:#ffcc00; font-weight:bold;">0 / 5</span></div>
       <div>爆竹 [F]: <span id="firecracker-count" style="color:#ff3333; font-weight:bold;">0</span> 個</div>
       <div>TIME: <span id="timer-display">00:00</span></div>
@@ -157,7 +157,7 @@
 
   <div id="title-screen">
     <div style="font-size:64px; color:#b30000; font-weight:bold; letter-spacing:10px;">死 の 市</div>
-    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- ULTIMATE HORROR EDITION 2.0 -</div>
+    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- REALISTIC ITEM & FIX EDITION -</div>
     
     <div class="diff-selector">
       <button class="diff-btn" onclick="setDifficulty('easy', this)">EASY</button>
@@ -168,7 +168,7 @@
     <button class="btn-action" id="start-btn">街 に 入 る</button>
     <div style="font-size:11px; color:#777; margin-top:20px; line-height:1.6; text-align:center;">
       [W/A/S/D] 移動 | [Shift] ダッシュ | [Ctrl/C] しゃがみ隠れる<br>
-      [F] 爆竹使用（投擲して爆音で怪物たちを一定時間麻痺させる）| 黄金の鍵を5つ探せ！
+      [F] 爆竹使用（道で拾って敵を麻痺）| 道の上の金色の『鍵』を5つ探せ！
     </div>
   </div>
 
@@ -189,6 +189,7 @@
   <div id="canvas-container"></div>
 
   <script>
+    // --- 音声エンジン ---
     class HorrorAudio {
       constructor() { this.ctx = null; }
       init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
@@ -197,7 +198,7 @@
         const now = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
-        osc.type = 'sine'; osc.frequency.setValueAtTime(60, now);
+        osc.type = 'sine'; osc.frequency.setValueAtTime(55, now);
         osc.frequency.exponentialRampToValueAtTime(10, now + 0.18);
         gain.gain.setValueAtTime(0.9, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
         osc.connect(gain); gain.connect(this.ctx.destination);
@@ -216,6 +217,7 @@
     }
     const audio = new HorrorAudio();
 
+    // --- ゲーム難易度設定 ---
     let difficulty = 'normal';
     let diffParams = { speedMult: 1.0, detectMult: 1.0 };
 
@@ -232,10 +234,11 @@
     let playTime = 0;
     let timerInterval = null;
 
+    // --- 3D 空間視界・照明の設定 ---
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x040508);
-    scene.fog = new THREE.FogExp2(0x040508, 0.025);
+    scene.background = new THREE.Color(0x05070c);
+    scene.fog = new THREE.FogExp2(0x05070c, 0.025);
 
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 150);
     camera.rotation.order = 'YXZ';
@@ -250,19 +253,21 @@
     renderer.setPixelRatio(window.devicePixelRatio);
     container.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0x2d3545, 0.8);
+    const ambientLight = new THREE.AmbientLight(0x333b50, 0.9);
     scene.add(ambientLight);
 
     const moonLight = new THREE.DirectionalLight(0x445577, 0.6);
     moonLight.position.set(20, 50, 20);
     scene.add(moonLight);
 
+    // 懐中電灯
     const flashlight = new THREE.SpotLight(0xfff5e0, 4.5, 35, Math.PI / 4, 0.3, 1);
     camera.add(flashlight);
     flashlight.position.set(0, 0, 0);
     flashlight.target.position.set(0, 0, -1);
     camera.add(flashlight.target);
 
+    // 地面（アスファルト風）
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(200, 200),
       new THREE.MeshStandardMaterial({ color: 0x15181c, roughness: 0.8 })
@@ -272,6 +277,7 @@
 
     const MAP_LIMIT = { minX: -60, maxX: 60, minZ: -65, maxZ: 45 };
 
+    // --- 街並み・建物生成 ---
     const buildingColliders = [];
     const buildingRenderData = [];
 
@@ -330,6 +336,7 @@
     }
     buildCity();
 
+    // --- 鍵モデル ---
     function createKeyMesh() {
       const group = new THREE.Group();
       const goldMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, metalness: 0.8, roughness: 0.2 });
@@ -346,27 +353,23 @@
       bit.position.set(0.06, -0.05, 0);
       group.add(bit);
 
-      // パーティクル光彩を追加
-      const pLight = new THREE.PointLight(0xffcc00, 1.0, 3);
-      pLight.position.set(0, 0.2, 0);
-      group.add(pLight);
-
       group.rotation.x = Math.PI / 4;
       return group;
     }
 
     const keys = [];
     const keyPositions = [
-      new THREE.Vector3(-6, 0.3, 10),
-      new THREE.Vector3(6, 0.3, -12),
-      new THREE.Vector3(-15, 0.3, -30),
-      new THREE.Vector3(15, 0.3, 5),
-      new THREE.Vector3(0, 0.3, -50)
+      new THREE.Vector3(-35, 0.3, -55),
+      new THREE.Vector3(35, 0.3, -45),
+      new THREE.Vector3(-6, 0.3, -15),
+      new THREE.Vector3(-25, 0.3, 15),
+      new THREE.Vector3(25, 0.3, 20)
     ];
 
     const batteries = [];
     const firecrackerItems = [];
 
+    // --- アイテム生成（障害物を避けて道路上に設置） ---
     function spawnItems() {
       keys.forEach(k => scene.remove(k.mesh));
       keys.length = 0;
@@ -377,28 +380,84 @@
         keys.push({ mesh, pos, collected: false });
       });
 
+      // リアル乾電池モデル
+      function createBatteryMesh() {
+        const group = new THREE.Group();
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8, roughness: 0.3 });
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.32, 16), bodyMat);
+        body.position.y = 0.16;
+        group.add(body);
+
+        const capMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9, roughness: 0.1 });
+        const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.06, 12), capMat);
+        cap.position.y = 0.33;
+        group.add(cap);
+
+        const stripeMat = new THREE.MeshStandardMaterial({ color: 0xffaa00, metalness: 0.6, roughness: 0.4 });
+        const stripe = new THREE.Mesh(new THREE.CylinderGeometry(0.102, 0.102, 0.1, 16), stripeMat);
+        stripe.position.y = 0.22;
+        group.add(stripe);
+
+        group.rotation.z = Math.PI / 2;
+        return group;
+      }
+
       batteries.forEach(b => scene.remove(b.mesh));
       batteries.length = 0;
-      const batPositions = [new THREE.Vector3(-12, 0.3, 18), new THREE.Vector3(12, 0.3, -25), new THREE.Vector3(-6, 0.3, -40)];
+      const batPositions = [
+        new THREE.Vector3(-6, 0.1, 8),
+        new THREE.Vector3(6, 0.1, -20),
+        new THREE.Vector3(-25, 0.1, -35),
+        new THREE.Vector3(25, 0.1, -10)
+      ];
       batPositions.forEach(pos => {
-        const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.35), new THREE.MeshBasicMaterial({ color: 0x0088ff }));
+        const mesh = createBatteryMesh();
         mesh.position.copy(pos); scene.add(mesh);
         batteries.push({ mesh, pos, collected: false });
       });
 
+      // リアル爆竹モデル
+      function createFirecrackerMesh() {
+        const group = new THREE.Group();
+        const redMat = new THREE.MeshStandardMaterial({ color: 0xcc1111, roughness: 0.5 });
+        const fuseMat = new THREE.MeshBasicMaterial({ color: 0xddccaa });
+        const bandMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
+
+        const offsets = [{x: -0.06, z: -0.04}, {x: 0.06, z: -0.04}, {x: 0, z: 0.06}];
+        offsets.forEach(off => {
+          const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.28, 12), redMat);
+          stick.position.set(off.x, 0.14, off.z);
+          group.add(stick);
+
+          const fuse = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.1, 8), fuseMat);
+          fuse.position.set(off.x, 0.31, off.z);
+          fuse.rotation.z = (Math.random() - 0.5) * 0.4;
+          group.add(fuse);
+        });
+
+        const band = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.05, 12), bandMat);
+        band.position.y = 0.14;
+        group.add(band);
+
+        return group;
+      }
+
       firecrackerItems.forEach(fc => scene.remove(fc.mesh));
       firecrackerItems.length = 0;
       const fcPositions = [
-        new THREE.Vector3(0, 0.2, 18), new THREE.Vector3(-12, 0.2, -5),
-        new THREE.Vector3(12, 0.2, -35), new THREE.Vector3(-18, 0.2, 0)
+        new THREE.Vector3(0, 0.1, 18),
+        new THREE.Vector3(-35, 0.1, -10),
+        new THREE.Vector3(12, 0.1, -35),
+        new THREE.Vector3(35, 0.1, 10)
       ];
       fcPositions.forEach(pos => {
-        const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.3), new THREE.MeshBasicMaterial({ color: 0xff1111 }));
+        const mesh = createFirecrackerMesh();
         mesh.position.copy(pos); scene.add(mesh);
         firecrackerItems.push({ mesh, pos, collected: false });
       });
     }
 
+    // --- モンスター生成 ---
     function createScaryMonster() {
       const group = new THREE.Group();
 
@@ -420,7 +479,7 @@
       eyeR.position.set(0.15, 3.8, 0.3);
       group.add(eyeL); group.add(eyeR);
 
-      const monsterLight = new THREE.PointLight(0xff0000, 2.0, 8);
+      const monsterLight = new THREE.PointLight(0xff0000, 1.5, 6);
       monsterLight.position.set(0, 3.5, 0);
       group.add(monsterLight);
 
@@ -430,6 +489,7 @@
 
     const monsters = [ createScaryMonster(), createScaryMonster() ];
 
+    // ゲーム変数
     let isPlaying = false, isPaused = false, isChanceTime = false;
     let stamina = 100, battery = 100, firecrackers = 0;
     let isCrouching = false, isSprinting = false;
@@ -438,6 +498,7 @@
 
     let moveF = false, moveB = false, moveL = false, moveR = false;
 
+    // チャンスタイム
     function triggerChanceTime() {
       isChanceTime = true;
       document.exitPointerLock();
@@ -475,28 +536,7 @@
       document.getElementById('battery-bar').style.width = `${battery}%`;
     }
 
-    // 爆竹（投擲エフェクト）
-    function throwFirecracker() {
-      if (firecrackers <= 0) {
-        showMsg("爆竹を持っていません！");
-        return;
-      }
-      firecrackers--;
-      updateUI();
-      showMsg("爆竹投擲！爆音で怪物たちが麻痺！");
-      audio.playSE(900, 0.6, 'sawtooth');
-
-      // 爆発ライトのフラッシュ演出
-      const flash = new THREE.PointLight(0xff3300, 5, 20);
-      const forward = new THREE.Vector3(0, 0, -3).applyAxisAngle(new THREE.Vector3(0,1,0), player.rotation.y);
-      flash.position.copy(player.position).add(forward);
-      scene.add(flash);
-
-      setTimeout(() => { scene.remove(flash); }, 300);
-
-      monsters.forEach(m => { m.isStunned = true; m.stunTimer = 6.0; });
-    }
-
+    // キーボード操作
     document.addEventListener('keydown', (e) => {
       if (e.code === 'KeyW') moveF = true;
       if (e.code === 'KeyS') moveB = true;
@@ -507,7 +547,17 @@
         isCrouching = !isCrouching;
         player.position.y = isCrouching ? 0.8 : 1.6;
       }
-      if (e.code === 'KeyF') throwFirecracker();
+      if (e.code === 'KeyF') {
+        if (firecrackers > 0) {
+          firecrackers--;
+          updateUI();
+          showMsg("爆竹を使用！爆音で怪物たちが麻痺！");
+          audio.playSE(900, 0.5, 'sawtooth');
+          monsters.forEach(m => { m.isStunned = true; m.stunTimer = 6.0; });
+        } else {
+          showMsg("爆竹を持っていません！");
+        }
+      }
       if (e.code === 'Escape') togglePause();
     });
 
@@ -610,17 +660,11 @@
 
       if (!isPlaying || isPaused || isChanceTime) return;
 
-      // バッテリー消費＆チカチカ点滅（残量15%以下）
       if (battery > 0) {
         battery -= delta * 0.8;
-        let baseIntensity = (battery / 100) * 4.5;
-        if (battery < 15 && Math.random() < 0.2) {
-          flashlight.intensity = 0.2; // 明滅チラつき
-        } else {
-          flashlight.intensity = baseIntensity;
-        }
+        flashlight.intensity = (battery / 100) * 4.5;
       } else {
-        flashlight.intensity = 0.1;
+        flashlight.intensity = 0.15;
       }
 
       let speed = 4.8;
@@ -645,7 +689,6 @@
           collide = true; break;
         }
       }
-
       if (nextX < MAP_LIMIT.minX || nextX > MAP_LIMIT.maxX || nextZ < MAP_LIMIT.minZ || nextZ > MAP_LIMIT.maxZ) {
         collide = true;
       }
@@ -655,6 +698,7 @@
         player.position.z = nextZ;
       }
 
+      // アイテム取得判定
       keys.forEach(k => {
         if (!k.collected && player.position.distanceTo(k.pos) < 1.6) {
           k.collected = true; scene.remove(k.mesh); keysCount++;
@@ -692,7 +736,7 @@
 
         if (dist < detectDist) {
           const dir = new THREE.Vector3().subVectors(player.position, m.pos).normalize();
-          m.pos.add(dir.multiplyScalar(3.2 * diffParams.speedMult * delta));
+          m.pos.add(dir.multiplyScalar(4.1 * diffParams.speedMult * delta));
           m.group.rotation.y = Math.atan2(dir.x, dir.z);
           m.group.position.y = Math.sin(now * 0.005) * 0.2;
 
