@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>死の市 - Stage Advance Edition</title>
+  <title>死の市 - Crimson Edition</title>
   <style>
     * { box-sizing: border-box; }
     html, body {
@@ -165,7 +165,7 @@
 
   <div id="title-screen">
     <div style="font-size:64px; color:#b30000; font-weight:bold; letter-spacing:10px;">死 の 市</div>
-    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- STAGE ADVANCE EDITION -</div>
+    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- RED WORLD EDITION -</div>
     
     <div class="diff-selector">
       <button class="diff-btn" onclick="setDifficulty('easy', this)">EASY</button>
@@ -188,7 +188,7 @@
 
   <div id="clear-overlay">
     <div style="font-size:54px; color:#00ff88; font-weight:bold;">STAGE CLEAR!</div>
-    <div style="margin:10px 0; color:#eee;">中央の扉を抜け、LV2の深淵へ進む...</div>
+    <div style="margin:10px 0; color:#eee;">中央の扉を抜け、LV2の『血の領域』へ進む...</div>
     <div style="font-size:20px; color:#ffcc00;" id="clear-rank">RANK: S</div>
     <div style="font-size:14px; color:#aaa; margin-bottom:20px;" id="clear-time-text">TIME: 00:00</div>
     <button class="btn-action" onclick="nextLevel()">NEXT LEVEL (LV2)</button>
@@ -276,7 +276,7 @@
     flashlight.target.position.set(0, 0, -1);
     camera.add(flashlight.target);
 
-    // 地面（アスファルト風）
+    // 地面
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(200, 200),
       new THREE.MeshStandardMaterial({ color: 0x15181c, roughness: 0.8 })
@@ -286,12 +286,10 @@
 
     const MAP_LIMIT = { minX: -60, maxX: 60, minZ: -65, maxZ: 45 };
 
-    // --- マップ中央のゴール門 (Goal Portal) ---
+    // --- マップ中央のゴール門 ---
     const goalGroup = new THREE.Group();
-    const portalMat = new THREE.MeshBasicMaterial({ color: 0x0088ff, wireframe: true });
     const portalCoreMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.6 });
     
-    // 柱
     const pillarMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5 });
     const pillarL = new THREE.Mesh(new THREE.BoxGeometry(0.6, 4, 0.6), pillarMat);
     pillarL.position.set(-1.8, 2, 0);
@@ -300,7 +298,6 @@
     const topBeam = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.6, 0.6), pillarMat);
     topBeam.position.set(0, 4.1, 0);
     
-    // 光るゲートコア
     const portalCore = new THREE.Mesh(new THREE.PlaneGeometry(3, 3.8), portalCoreMat);
     portalCore.position.set(0, 2, 0);
     
@@ -310,7 +307,7 @@
     goalLight.position.set(0, 2, 0);
     goalGroup.add(goalLight);
     
-    goalGroup.position.set(0, 0, 0); // 中央に設置
+    goalGroup.position.set(0, 0, 0);
     scene.add(goalGroup);
 
     // --- 街並み・建物生成 ---
@@ -324,7 +321,6 @@
 
       for (let z = -60; z <= 35; z += 18) {
         for (let x = -40; x <= 40; x += 22) {
-          // ゴール領域（中央(0,0)周辺）には建物を建てない
           if (Math.abs(x) < 10 && Math.abs(z) < 10) continue;
 
           const w = 12, d = 12, h = 8 + Math.random() * 6;
@@ -570,7 +566,9 @@
       document.getElementById('firecracker-count').textContent = firecrackers;
       document.getElementById('stamina-bar').style.width = `${stamina}%`;
       document.getElementById('battery-bar').style.width = `${battery}%`;
-      document.getElementById('level-display').textContent = `LEVEL ${currentLevel}`;
+      const lvlEl = document.getElementById('level-display');
+      lvlEl.textContent = `LEVEL ${currentLevel}`;
+      lvlEl.style.color = currentLevel >= 2 ? '#ff3333' : '#00ff88';
     }
 
     // キーボード操作
@@ -645,18 +643,26 @@
       monsters[0].pos.set(0, 0, -45);
       monsters[1].pos.set(-20, 0, -10);
       
-      // ゴールの光のリセット
       goalLight.color.setHex(0x0088ff);
       portalCoreMat.color.setHex(0x00ffff);
 
-      // LEVEL 2 時の環境変化
+      // --- LEVEL 2: マップ全体を赤く染める設定 ---
       if (currentLevel >= 2) {
-        scene.fog.density = 0.04;
-        ambientLight.intensity = 0.3;
-        showMsg("LEVEL 2: 闇が深まり、モンスターの速度が上昇！");
+        scene.background.setHex(0x220000); // 赤黒い背景
+        scene.fog.color.setHex(0x330000);  // 赤い霧
+        scene.fog.density = 0.03;
+        ambientLight.color.setHex(0xff3333); // 赤い環境光
+        ambientLight.intensity = 0.8;
+        moonLight.color.setHex(0xff0000);    // 赤い月光
+        showMsg("LEVEL 2: 赤い世界へ突入... 怪物たちの速度が上昇！");
       } else {
+        // LEVEL 1 通常色
+        scene.background.setHex(0x05070c);
+        scene.fog.color.setHex(0x05070c);
         scene.fog.density = 0.025;
+        ambientLight.color.setHex(0x333b50);
         ambientLight.intensity = 0.9;
+        moonLight.color.setHex(0x445577);
       }
 
       spawnItems(); updateUI();
@@ -725,7 +731,6 @@
       const delta = Math.min((now - lastTime) / 1000, 0.1);
       lastTime = now;
 
-      // ゴールポータルの回転演出
       portalCore.rotation.z += delta * 0.5;
 
       keys.forEach(k => {
@@ -774,11 +779,9 @@
         player.position.z = nextZ;
       }
 
-      // --- インタラクトチェック（アイテム・ゴール） ---
       nearbyItemAction = null;
       let promptText = "";
 
-      // 1. 中央ゴールの判定
       const distToGoal = player.position.distanceTo(goalGroup.position);
       if (distToGoal < 3.0) {
         if (keysCount >= keyPositions.length) {
@@ -789,7 +792,6 @@
         }
       }
 
-      // 2. 鍵の判定
       if (!nearbyItemAction) {
         keys.forEach(k => {
           if (!k.collected && player.position.distanceTo(k.pos) < 2.2) {
@@ -809,7 +811,6 @@
         });
       }
 
-      // 3. 乾電池の判定
       if (!nearbyItemAction) {
         batteries.forEach(b => {
           if (!b.collected && player.position.distanceTo(b.pos) < 2.0) {
@@ -822,7 +823,6 @@
         });
       }
 
-      // 4. 爆竹の判定
       if (!nearbyItemAction) {
         firecrackerItems.forEach(fc => {
           if (!fc.collected && player.position.distanceTo(fc.pos) < 2.0) {
@@ -845,7 +845,6 @@
 
       if (revealEnemiesTimer > 0) revealEnemiesTimer -= delta;
 
-      // --- モンスター移動・捕獲 ---
       const levelSpeedBonus = (currentLevel - 1) * 0.8;
       monsters.forEach(m => {
         if (m.isStunned) {
@@ -888,7 +887,6 @@
         miniCtx.fillRect(cx + dx - w/2, cy + dz - d/2, w, d);
       });
 
-      // 中央ゴールアイコン
       const gdx = (goalGroup.position.x - player.position.x) * scale;
       const gdz = (goalGroup.position.z - player.position.z) * scale;
       miniCtx.fillStyle = keysCount >= keyPositions.length ? '#00ff88' : '#0088ff';
