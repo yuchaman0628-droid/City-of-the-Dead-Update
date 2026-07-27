@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>死の市 - Real Item Edition</title>
+  <title>死の市 - Real Item Edition (Fixed & Updated)</title>
   <style>
     * { box-sizing: border-box; }
     html, body {
@@ -199,8 +199,11 @@
   <script>
     // --- 音声エンジン ---
     class HorrorAudio {
-      constructor() { this.ctx = null; }
-      init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+      constructor() { this.ctx = null; this.lastHeartbeat = 0; }
+      init() { 
+        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); 
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+      }
       playHeartbeat() {
         if (!this.ctx) return;
         const now = this.ctx.currentTime;
@@ -501,7 +504,7 @@
     let isCrouching = false, isSprinting = false;
     let keysCount = 0;
     let revealEnemiesTimer = 0;
-    let nearbyItemAction = null; // 近くにあるアイテムの取得用アクション
+    let nearbyItemAction = null;
 
     let moveF = false, moveB = false, moveL = false, moveR = false;
 
@@ -588,6 +591,12 @@
       player.rotation.y -= e.movementX * mouseSensitivity;
       camera.rotation.x -= e.movementY * mouseSensitivity;
       camera.rotation.x = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, camera.rotation.x));
+    });
+
+    window.addEventListener('click', () => {
+      if (isPlaying && !isPaused && !isChanceTime && document.pointerLockElement !== document.body) {
+        document.body.requestPointerLock();
+      }
     });
 
     function togglePause() {
@@ -677,9 +686,15 @@
 
       if (!isPlaying || isPaused || isChanceTime) return;
 
+      // 懐中電灯とバッテリー（ちらつき演出）
       if (battery > 0) {
         battery -= delta * 0.8;
-        flashlight.intensity = (battery / 100) * 4.5;
+        let baseIntensity = (battery / 100) * 4.5;
+        if (battery < 20 && Math.random() < 0.15) {
+          flashlight.intensity = baseIntensity * 0.2; // ちらつき
+        } else {
+          flashlight.intensity = baseIntensity;
+        }
       } else {
         flashlight.intensity = 0.15;
       }
@@ -765,7 +780,9 @@
 
       if (revealEnemiesTimer > 0) revealEnemiesTimer -= delta;
 
-      // --- モンスターの移動・接触判定（シンプル化） ---
+      // --- モンスターの移動・接触判定（修正済み） ---
+      let minEnemyDist = Infinity;
+
       monsters.forEach(m => {
         if (m.isStunned) {
           m.stunTimer -= delta;
@@ -774,20 +791,31 @@
         }
 
         const dist = m.pos.distanceTo(player.position);
+        if (dist < minEnemyDist) minEnemyDist = dist;
+
         let detectDist = (20 * diffParams.detectMult) * (isCrouching ? 0.35 : 1.0);
 
         if (dist < detectDist) {
+          // ベクトル計算バグを修正
           const dir = new THREE.Vector3().subVectors(player.position, m.pos).normalize();
-          m.pos.add(dir.multiplyScalar(4.1 * diffParams.speedMult * delta));
+          const moveStep = dir.clone().multiplyScalar(4.1 * diffParams.speedMult * delta);
+          m.pos.add(moveStep);
+          
           m.group.rotation.y = Math.atan2(dir.x, dir.z);
           m.group.position.y = Math.sin(now * 0.005) * 0.2;
-
-          if (dist < 12) audio.playHeartbeat();
         }
 
-        // 接触したらシンプルに即ゲームオーバー
+        // 接触したらゲームオーバー
         if (dist < 1.6) triggerJumpscare();
       });
+
+      // 距離に応じた心臓音演出
+      if (minEnemyDist < 12) {
+        if (!audio.lastHeartbeat || now - audio.lastHeartbeat > (minEnemyDist * 50 + 200)) {
+          audio.playHeartbeat();
+          audio.lastHeartbeat = now;
+        }
+      }
 
       checkWin();
       updateMinimap();
@@ -830,9 +858,10 @@
         }
       });
 
+      // プレイヤーの矢印の向き（回転同期を修正）
       miniCtx.save();
       miniCtx.translate(cx, cy);
-      miniCtx.rotate(-player.rotation.y);
+      miniCtx.rotate(player.rotation.y);
       miniCtx.fillStyle = '#00ff88';
       miniCtx.beginPath();
       miniCtx.moveTo(0, -6); miniCtx.lineTo(4, 5); miniCtx.lineTo(-4, 5);
