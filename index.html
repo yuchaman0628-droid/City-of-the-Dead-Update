@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>死の市 - Torii Escape Edition</title>
+  <title>死の市 - Torii Escape Edition (Updated)</title>
   <style>
     * { box-sizing: border-box; }
     html, body {
@@ -20,24 +20,24 @@
     #vhs-overlay {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       pointer-events: none;
-      background: repeating-linear-gradient(0deg, rgba(0,0,0,0.08), rgba(0,0,0,0.08) 1px, transparent 1px, transparent 2px);
-      box-shadow: inset 0 0 120px rgba(0,0,0,0.85);
+      background: repeating-linear-gradient(0deg, rgba(0,0,0,0.1), rgba(0,0,0,0.1) 1px, transparent 1px, transparent 2px);
+      box-shadow: inset 0 0 150px rgba(0,0,0,0.9);
       z-index: 10;
     }
 
     #jumpscare-overlay {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: radial-gradient(circle, rgba(200,0,0,0.95) 0%, rgba(0,0,0,1) 80%);
+      background: radial-gradient(circle, rgba(180,0,0,0.95) 0%, rgba(0,0,0,1) 80%);
       display: none; justify-content: center; align-items: center;
       flex-direction: column; z-index: 60;
     }
     .jumpscare-face {
-      font-size: 160px; text-shadow: 0 0 60px #f00, 0 0 120px #ff0000;
-      animation: scareZoom 0.1s infinite alternate;
+      font-size: 180px; text-shadow: 0 0 60px #f00, 0 0 120px #ff0000;
+      animation: scareZoom 0.08s infinite alternate;
     }
     @keyframes scareZoom {
-      0% { transform: scale(1) rotate(-5deg); }
-      100% { transform: scale(1.4) rotate(5deg); }
+      0% { transform: scale(1) rotate(-8deg); }
+      100% { transform: scale(1.45) rotate(8deg); }
     }
 
     #crosshair {
@@ -64,7 +64,7 @@
     #interact-prompt {
       position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%);
       color: #ffcc00; font-size: 16px; font-weight: bold; letter-spacing: 2px;
-      background: rgba(0, 0, 0, 0.7); padding: 6px 16px; border: 1px solid #ffcc00;
+      background: rgba(0, 0, 0, 0.8); padding: 6px 16px; border: 1px solid #ffcc00;
       border-radius: 4px; display: none; z-index: 20; pointer-events: none;
     }
 
@@ -77,7 +77,7 @@
 
     #chance-screen {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(5, 2, 10, 0.94); display: none; flex-direction: column;
+      background: rgba(5, 2, 10, 0.95); display: none; flex-direction: column;
       justify-content: center; align-items: center; z-index: 45; color: #fff;
     }
     .chance-title { font-size: 36px; color: #ffcc00; letter-spacing: 6px; margin-bottom: 10px; text-shadow: 0 0 20px #ffcc00; }
@@ -93,8 +93,8 @@
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       display: flex; flex-direction: column; justify-content: center; align-items: center; color: #eee;
     }
-    #pause-menu { background: rgba(0, 0, 0, 0.85); z-index: 40; display: none; }
-    #title-screen { background: radial-gradient(circle, rgba(25, 2, 2, 0.98) 0%, rgba(0,0,0,1) 100%); z-index: 30; }
+    #pause-menu { background: rgba(0, 0, 0, 0.9); z-index: 40; display: none; }
+    #title-screen { background: radial-gradient(circle, rgba(35, 2, 2, 0.98) 0%, rgba(0,0,0,1) 100%); z-index: 30; }
     #gameover-overlay { background-color: rgba(30, 0, 0, 0.98); display: none; z-index: 50; }
     #clear-overlay { background-color: rgba(0, 20, 10, 0.95); display: none; z-index: 50; }
 
@@ -129,7 +129,7 @@
 
   <div id="ui">
     <div class="hud-box">
-      <div>『死の市』中央鳥居</div>
+      <div>『死の市』中央鳥居 [UPDATE v2]</div>
       <div style="margin-top:2px;">鍵: <span id="key-count" style="color:#ffcc00; font-weight:bold;">0 / 5</span></div>
       <div>爆竹 [F]: <span id="firecracker-count" style="color:#ff3333; font-weight:bold;">0</span> 個</div>
       <div>TIME: <span id="timer-display">00:00</span></div>
@@ -140,7 +140,7 @@
       <div style="margin-top:4px;">BATTERY</div>
       <div class="bar-bg"><div id="battery-bar" class="bar-fill"></div></div>
     </div>
-    <div id="crouch-status" style="font-size:10px; color:#aaa;">[Ctrl/C] しゃがみ | [E] 拾う | [Esc] ポーズ</div>
+    <div id="crouch-status" style="font-size:10px; color:#aaa;">[Ctrl/C] しゃがみ隠れる | [E] 調べる | [Esc] ポーズ</div>
   </div>
 
   <div id="minimap-container"><canvas id="minimap-canvas" width="160" height="160"></canvas></div>
@@ -165,7 +165,7 @@
 
   <div id="title-screen">
     <div style="font-size:64px; color:#b30000; font-weight:bold; letter-spacing:10px;">死 の 市</div>
-    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- TORII ESCAPE EDITION -</div>
+    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- TORII ESCAPE EDITION (REV.2) -</div>
     
     <div class="diff-selector">
       <button class="diff-btn" onclick="setDifficulty('easy', this)">EASY</button>
@@ -253,7 +253,6 @@
     camera.rotation.order = 'YXZ';
 
     const player = new THREE.Object3D();
-    // 変更：初期リスポーン地点を鳥居の目の前 (X: 0, Y: 1.6, Z: 1) に設定
     player.position.set(0, 1.6, 1);
     player.add(camera);
     scene.add(player);
@@ -294,7 +293,6 @@
       const woodMat = new THREE.MeshStandardMaterial({ color: 0x881111, roughness: 0.6 });
       const blackMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
 
-      // 柱 (左右)
       const pillarGeo = new THREE.CylinderGeometry(0.3, 0.35, 5, 12);
       const pillarL = new THREE.Mesh(pillarGeo, woodMat);
       pillarL.position.set(-2, 2.5, 0);
@@ -304,25 +302,21 @@
       pillarR.position.set(2, 2.5, 0);
       group.add(pillarR);
 
-      // 笠木 (一番上の反った横木)
       const kasagiGeo = new THREE.BoxGeometry(5.2, 0.4, 0.6);
       const kasagi = new THREE.Mesh(kasagiGeo, woodMat);
       kasagi.position.set(0, 4.8, 0);
       group.add(kasagi);
 
-      // 島木 (笠木の下の横木)
       const shimagiGeo = new THREE.BoxGeometry(4.6, 0.3, 0.5);
       const shimagi = new THREE.Mesh(shimagiGeo, blackMat);
       shimagi.position.set(0, 4.3, 0);
       group.add(shimagi);
 
-      // 貫 (下部の横木)
       const nukiGeo = new THREE.BoxGeometry(4.6, 0.25, 0.4);
       const nuki = new THREE.Mesh(nukiGeo, woodMat);
       nuki.position.set(0, 3.2, 0);
       group.add(nuki);
 
-      // 鳥居を照らす不気味なスポットライト
       const toriiLight = new THREE.PointLight(0xff3300, 2.0, 10);
       toriiLight.position.set(0, 3, 1);
       group.add(toriiLight);
@@ -343,7 +337,7 @@
 
       for (let z = -60; z <= 35; z += 18) {
         for (let x = -40; x <= 40; x += 22) {
-          if (Math.abs(x) < 8 && Math.abs(z) < 12) continue; // 中央の鳥居周辺を空ける
+          if (Math.abs(x) < 8 && Math.abs(z) < 12) continue;
 
           const w = 12, d = 12, h = 8 + Math.random() * 6;
           const bldg = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bldgMat);
@@ -627,9 +621,8 @@
 
     function startGame() {
       isPlaying = true; isPaused = false; keysCount = 0; stamina = 100; battery = 100; playTime = 0; firecrackers = 0;
-      // 変更：ゲーム開始時もプレイヤーを鳥居の目の前 (X: 0, Y: 1.6, Z: 1) に配置
       player.position.set(0, 1.6, 1);
-      player.rotation.y = 0; // 鳥居の方向を向くようにリセット
+      player.rotation.y = 0;
       camera.rotation.x = 0;
 
       monsters[0].pos.set(-15, 0, -35);
@@ -678,7 +671,6 @@
       }, 1300);
     }
 
-    // --- クリア判定（中央の鳥居に鍵5個で到達） ---
     function checkWin() {
       const distToTorii = player.position.distanceTo(toriiPosition);
       if (distToTorii < 2.5) {
@@ -752,7 +744,6 @@
         player.position.z = nextZ;
       }
 
-      // --- アイテム取得チェック ([E]キー) ---
       nearbyItemAction = null;
       let promptText = "";
 
@@ -805,7 +796,6 @@
 
       if (revealEnemiesTimer > 0) revealEnemiesTimer -= delta;
 
-      // --- モンスター処理 ---
       monsters.forEach(m => {
         if (m.isStunned) {
           m.stunTimer -= delta;
@@ -848,13 +838,11 @@
         miniCtx.fillRect(cx + dx - w/2, cy + dz - d/2, w, d);
       });
 
-      // ミニマップ上の鳥居（ゴール）の描画
       const toriiDx = (toriiPosition.x - player.position.x) * scale;
       const toriiDz = (toriiPosition.z - player.position.z) * scale;
       miniCtx.fillStyle = '#ff3300';
       miniCtx.fillRect(cx + toriiDx - 4, cy + toriiDz - 2, 8, 4);
 
-      // 鍵の描画
       keys.forEach(k => {
         if (!k.collected) {
           const dx = (k.pos.x - player.position.x) * scale;
@@ -866,7 +854,6 @@
         }
       });
 
-      // 敵の描画
       monsters.forEach(m => {
         const dx = (m.pos.x - player.position.x) * scale;
         const dz = (m.pos.z - player.position.z) * scale;
@@ -876,7 +863,6 @@
         }
       });
 
-      // プレイヤー自機
       miniCtx.save();
       miniCtx.translate(cx, cy);
       miniCtx.rotate(-player.rotation.y);
