@@ -217,7 +217,7 @@
   <div id="next-stage-overlay">
     <div style="font-size:54px; color:#ffcc00; font-weight:bold;">STAGE 1 CLEAR</div>
     <div style="margin:15px 0; color:#eee; font-size:20px;">Lv.2 に進みますか？</div>
-    <div style="font-size:13px; color:#ff4444; margin-bottom:25px;">※Lv.2はさらに凶悪な赤き空間・ハードの2倍の難易度になります</div>
+    <div style="font-size:13px; color:#ff4444; margin-bottom:25px;">※Lv.2はさらに凶悪な赤き空間・ハードの2倍の難易度になります（スタミナ制限なし）</div>
     <div style="display: flex; gap: 20px;">
       <button class="btn-action" onclick="startLevel2()" style="margin-top:0; background:#800000; border-color:#f00;">はい (Lv.2へ)</button>
       <button class="btn-action" onclick="returnToTitle()" style="margin-top:0;">いいえ (タイトルへ)</button>
@@ -1056,7 +1056,7 @@
       audio.startBGM(true);
       spawnMonsters();
       spawnItems();
-      showMsg("Lv.2 へ突入：難易度倍増・血染めの空間");
+      showMsg("Lv.2 へ突入：難易度倍増・スタミナ制限なし");
     };
 
     function returnToTitle() {
@@ -1185,17 +1185,26 @@
         }
 
         const isMoving = moveF || moveB || moveL || moveR;
-        if (isSprinting && isMoving && stamina > 0) {
-          stamina -= delta * 35;
-          if (stamina < 0) stamina = 0;
+        
+        // ▼▼▼ アップデート箇所：Lv.1の時だけスタミナ制限を有効にし、Lv.2の時はスタミナを常に最大（100）に維持 ▼▼▼
+        if (currentLevel === 1) {
+          if (isSprinting && isMoving && stamina > 0) {
+            stamina -= delta * 35;
+            if (stamina < 0) stamina = 0;
+          } else {
+            stamina += delta * 18;
+            if (stamina > 100) stamina = 100;
+          }
         } else {
-          stamina += delta * 18;
-          if (stamina > 100) stamina = 100;
+          stamina = 100; // Lv.2ではスタミナが減らないように固定
         }
+        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
         updateUI();
 
         let speed = 4.2;
-        if (isSprinting && stamina > 0) speed = 6.8;
+        // Lv.2ではスタミナ制限がないため、常時Shiftでのダッシュが可能です
+        if (isSprinting && isMoving && (currentLevel === 2 || stamina > 0)) speed = 6.8;
 
         const moveDir = new THREE.Vector3();
         const camDir = new THREE.Vector3();
@@ -1311,7 +1320,7 @@
           }
 
           let mSpeed = m.baseSpeed * diffParams.speedMult;
-          if (currentLevel === 2) mSpeed *= 1.25; // Lv2の追加ブースト
+          if (currentLevel === 2) mSpeed *= 1.25;
 
           const toPlayer = new THREE.Vector3().subVectors(player.position, m.pos);
           const dist = toPlayer.length();
