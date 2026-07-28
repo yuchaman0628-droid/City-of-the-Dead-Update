@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>死の市 - Torii Escape Edition (Collision Fix v14)</title>
+  <title>死の市 - Torii Escape Edition (Jumpscare Audio v15)</title>
   <style>
     * { box-sizing: border-box; }
     html, body {
@@ -137,7 +137,7 @@
 
   <div id="ui">
     <div class="hud-box">
-      <div>『死の市』中央鳥居 [BLOOD MOON v14]</div>
+      <div>『死の市』中央鳥居 [BLOOD MOON v15]</div>
       <div style="margin-top:2px;">鍵: <span id="key-count" style="color:#ffcc00; font-weight:bold;">0 / 5</span></div>
       <div>爆竹 [F]: <span id="firecracker-count" style="color:#ff3333; font-weight:bold;">0</span> 個</div>
       <div>TIME: <span id="timer-display">00:00</span></div>
@@ -376,6 +376,55 @@
         gain.gain.setValueAtTime(0.8, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
         osc.connect(gain); gain.connect(this.masterGain);
         osc.start(now); osc.stop(now + 0.18);
+      }
+      playJumpscareScream() {
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+
+        // 金切り声（ノイズ ＋ バンドパスフィルターの高周波モジュレーション）
+        const bufferSize = this.ctx.sampleRate * 1.2;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(1200, now);
+        filter.frequency.exponentialRampToValueAtTime(3200, now + 0.4);
+        filter.frequency.exponentialRampToValueAtTime(800, now + 1.2);
+        filter.Q.setValueAtTime(12, now);
+
+        const gainNode = this.ctx.createGain();
+        gainNode.gain.setValueAtTime(0.01, now);
+        gainNode.gain.linearRampToValueAtTime(0.65, now + 0.05);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+
+        noise.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(this.masterGain);
+
+        noise.start(now);
+        noise.stop(now + 1.25);
+
+        // 低音の衝撃音（ドンという恐怖の重低音）
+        const subOsc = this.ctx.createOscillator();
+        const subGain = this.ctx.createGain();
+        subOsc.type = 'sawtooth';
+        subOsc.frequency.setValueAtTime(120, now);
+        subOsc.frequency.exponentialRampToValueAtTime(30, now + 0.8);
+        
+        subGain.gain.setValueAtTime(0.7, now);
+        subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+
+        subOsc.connect(subGain);
+        subGain.connect(this.masterGain);
+        subOsc.start(now);
+        subOsc.stop(now + 0.85);
       }
       playSE(freq, duration, type='sine') {
         if (!this.ctx) return;
@@ -908,6 +957,10 @@
       document.exitPointerLock();
       audio.stopBGM();
       if (timerInterval) clearInterval(timerInterval);
+
+      // ジャンプスケアの恐怖の叫び声エフェクトを再生
+      audio.playJumpscareScream();
+
       document.getElementById('jumpscare-overlay').style.display = 'flex';
       setTimeout(() => {
         document.getElementById('jumpscare-overlay').style.display = 'none';
@@ -1136,7 +1189,6 @@
             }
           }
 
-          // 当たり判定の距離を「2.5」に拡大し、確実に接触判定が入るように修正
           if (dist < 2.5) {
             triggerGameOver();
           }
