@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>死の市 - Torii Escape Edition (Updated v11)</title>
+  <title>死の市 - Torii Escape Edition (No-Crouch v13)</title>
   <style>
     * { box-sizing: border-box; }
     html, body {
@@ -137,7 +137,7 @@
 
   <div id="ui">
     <div class="hud-box">
-      <div>『死の市』中央鳥居 [BLOOD MOON v11]</div>
+      <div>『死の市』中央鳥居 [BLOOD MOON v13]</div>
       <div style="margin-top:2px;">鍵: <span id="key-count" style="color:#ffcc00; font-weight:bold;">0 / 5</span></div>
       <div>爆竹 [F]: <span id="firecracker-count" style="color:#ff3333; font-weight:bold;">0</span> 個</div>
       <div>TIME: <span id="timer-display">00:00</span></div>
@@ -148,7 +148,7 @@
       <div style="margin-top:4px;">BATTERY</div>
       <div class="bar-bg"><div id="battery-bar" class="bar-fill"></div></div>
     </div>
-    <div id="crouch-status" style="font-size:10px; color:#aaa;">[Ctrl/C] しゃがみ隠れる | [E] 調べる | [Esc] ポーズ</div>
+    <div style="font-size:10px; color:#aaa; margin-top:4px;">[E] 調べる | [F] 爆竹 | [Esc] ポーズ</div>
   </div>
 
   <div id="minimap-container"><canvas id="minimap-canvas" width="160" height="160"></canvas></div>
@@ -201,9 +201,9 @@
     <button class="btn-action" id="start-btn">街 に 入 る</button>
     <button class="btn-action" onclick="openOptions('title')">オプション設定</button>
     <div style="font-size:11px; color:#777; margin-top:20px; line-height:1.6; text-align:center;">
-      [W/A/S/D] 移動 | [Shift] ダッシュ | [Ctrl/C] しゃがみ隠れる<br>
-      [E] アイテム取得 | [F] 爆竹使用（怪物麻痺）<br>
-      ※モンスターに触れると即ゲームオーバー！4つ目の鍵で高速追跡者出現！
+      [W/A/S/D] 移動 | [Shift] ダッシュ | [E] アイテム取得<br>
+      [F] 爆竹使用（怪物麻痺）<br>
+      ※モンスターに接触すると即ゲームオーバー！
     </div>
   </div>
 
@@ -256,7 +256,6 @@
         if (this.isBgmPlaying) return;
         this.isBgmPlaying = true;
 
-        // 不気味な低音ドローンBGM
         const playDrone = () => {
           if (!this.isBgmPlaying || !this.ctx) return;
           const now = this.ctx.currentTime;
@@ -287,12 +286,10 @@
         };
         playDrone();
 
-        // 恐怖を煽る不気味なシンセサイザーの旋律（ホラーメロディ）
         const playScaryMelody = () => {
           if (!this.isBgmPlaying || !this.ctx) return;
           const now = this.ctx.currentTime;
           
-          // 不協和音を含む不気味な音階（Hz）
           const notes = [233.08, 220.00, 185.00, 164.81, 155.56]; 
           const freq = notes[Math.floor(Math.random() * notes.length)];
 
@@ -323,11 +320,10 @@
         };
         playScaryMelody();
 
-        // 調整されたリアルなセミの鳴き声（夏のホラー演出）
         const playCicada = () => {
           if (!this.isBgmPlaying || !this.ctx) return;
           const now = this.ctx.currentTime;
-          const duration = 1.8 + Math.random() * 2.2;
+          const duration = 2.0 + Math.random() * 2.5;
 
           const bufferSize = this.ctx.sampleRate * duration;
           const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
@@ -341,16 +337,15 @@
 
           const filter = this.ctx.createBiquadFilter();
           filter.type = 'bandpass';
-          // 周波数を少し変更し、より耳障りで寂寥感のある響きに
-          filter.frequency.setValueAtTime(6200, now);
-          filter.Q.setValueAtTime(15, now);
+          filter.frequency.setValueAtTime(5800, now);
+          filter.Q.setValueAtTime(20, now);
 
           const gain = this.ctx.createGain();
           gain.gain.setValueAtTime(0.001, now);
-          gain.gain.linearRampToValueAtTime(0.06, now + 0.2);
+          gain.gain.linearRampToValueAtTime(0.05, now + 0.3);
           
-          for (let t = 0.2; t < duration - 0.2; t += 0.08) {
-            gain.gain.setValueAtTime(0.03 + Math.random() * 0.04, now + t);
+          for (let t = 0.3; t < duration - 0.3; t += 0.06) {
+            gain.gain.setValueAtTime(0.02 + Math.random() * 0.05, now + t);
           }
           gain.gain.linearRampToValueAtTime(0.001, now + duration);
 
@@ -361,7 +356,7 @@
           noise.start(now);
           noise.stop(now + duration);
 
-          this.cicadaInterval = setTimeout(playCicada, (duration + 0.8 + Math.random() * 2.5) * 1000);
+          this.cicadaInterval = setTimeout(playCicada, (duration + 1.0 + Math.random() * 2.0) * 1000);
         };
         playCicada();
       }
@@ -584,22 +579,6 @@
           buildingRenderData.push({ x, z, w, d });
         }
       }
-
-      const ruinMat = new THREE.MeshStandardMaterial({ color: 0x0a0c10, roughness: 0.9 });
-      const outerRuins = [
-        {x: -75, z: -70, w: 25, d: 25, h: 30},
-        {x: 75, z: -70, w: 30, d: 20, h: 35},
-        {x: -75, z: 20, w: 20, d: 30, h: 25},
-        {x: 75, z: 20, w: 25, d: 25, h: 28},
-        {x: 0, z: -80, w: 40, d: 15, h: 32},
-        {x: 0, z: 60, w: 45, d: 20, h: 26}
-      ];
-      outerRuins.forEach(r => {
-        const ruinBldg = new THREE.Mesh(new THREE.BoxGeometry(r.w, r.h, r.d), ruinMat);
-        ruinBldg.position.set(r.x, r.h / 2, r.z);
-        scene.add(ruinBldg);
-        buildingColliders.push({ minX: r.x - r.w/2 - 0.6, maxX: r.x + r.w/2 + 0.6, minZ: r.z - r.d/2 - 0.6, maxZ: r.z + r.d/2 + 0.6 });
-      });
     }
     buildCity();
 
@@ -757,12 +736,6 @@
         eyeSub.position.set(i * 0.12, 3.9, 0.35); group.add(eyeSub);
       }
 
-      const armMat = new THREE.MeshStandardMaterial({ color: 0x110505, roughness: 0.9 });
-      const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.05, 2.5), armMat);
-      armL.position.set(-0.5, 2.2, 0.2); armL.rotation.z = -0.4; group.add(armL);
-      const armR = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.05, 2.5), armMat);
-      armR.position.set(0.5, 2.2, 0.2); armR.rotation.z = 0.4; group.add(armR);
-
       const lightColor = isFast ? 0xff6600 : 0xff0000;
       const monsterLight = new THREE.PointLight(lightColor, 2.0, 7);
       monsterLight.position.set(0, 3.5, 0); group.add(monsterLight);
@@ -782,7 +755,7 @@
 
     let isPlaying = false, isPaused = false, isChanceTime = false;
     let stamina = 100, battery = 100, firecrackers = 0;
-    let isCrouching = false, isSprinting = false;
+    let isSprinting = false;
     let keysCount = 0;
     let revealEnemiesTimer = 0;
     let nearbyItemAction = null;
@@ -832,10 +805,6 @@
       if (e.code === 'KeyA') moveL = true;
       if (e.code === 'KeyD') moveR = true;
       if (e.code === 'ShiftLeft') isSprinting = true;
-      if (e.code === 'ControlLeft' || e.code === 'KeyC') {
-        isCrouching = !isCrouching;
-        player.position.y = isCrouching ? 0.8 : 1.6;
-      }
       if (e.code === 'KeyE') {
         if (nearbyItemAction) {
           nearbyItemAction();
@@ -1035,9 +1004,8 @@
         }
         updateUI();
 
-        let speed = 3.8;
-        if (isCrouching) speed = 1.8;
-        else if (isSprinting && stamina > 0) speed = 6.2;
+        let speed = 4.2;
+        if (isSprinting && stamina > 0) speed = 6.8;
 
         const moveDir = new THREE.Vector3();
         const camDir = new THREE.Vector3();
@@ -1156,22 +1124,20 @@
           const toPlayer = new THREE.Vector3().subVectors(player.position, m.pos);
           const dist = toPlayer.length();
 
-          let detectDist = (m.isFast ? 25 : 18) * diffParams.detectMult;
-          if (isCrouching) detectDist *= 0.4;
-          if (isSprinting) detectDist *= 1.6;
+          let detectDist = (m.isFast ? 30 : 22) * diffParams.detectMult;
 
           if (dist < detectDist) {
             toPlayer.y = 0; toPlayer.normalize();
             m.pos.addScaledVector(toPlayer, mSpeed * delta);
             m.group.lookAt(player.position.x, m.pos.y, player.position.z);
 
-            if (dist < 8 && Math.random() < 0.02) {
+            if (dist < 10 && Math.random() < 0.02) {
               audio.playHeartbeat();
             }
           }
 
-          // しゃがみ状態に関わらず、普通に接触（距離1.4以内）したら即ゲームオーバー
-          if (dist < 1.4) {
+          // 厳密な当たり判定（プレイヤーとモンスターの距離が1.5未満になったら即ゲームオーバー）
+          if (dist < 1.5) {
             triggerGameOver();
           }
         });
