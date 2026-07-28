@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>死の市 - Torii Escape Edition (Updated v10)</title>
+  <title>死の市 - Torii Escape Edition (Updated v11)</title>
   <style>
     * { box-sizing: border-box; }
     html, body {
@@ -137,7 +137,7 @@
 
   <div id="ui">
     <div class="hud-box">
-      <div>『死の市』中央鳥居 [BLOOD MOON v10]</div>
+      <div>『死の市』中央鳥居 [BLOOD MOON v11]</div>
       <div style="margin-top:2px;">鍵: <span id="key-count" style="color:#ffcc00; font-weight:bold;">0 / 5</span></div>
       <div>爆竹 [F]: <span id="firecracker-count" style="color:#ff3333; font-weight:bold;">0</span> 個</div>
       <div>TIME: <span id="timer-display">00:00</span></div>
@@ -203,7 +203,7 @@
     <div style="font-size:11px; color:#777; margin-top:20px; line-height:1.6; text-align:center;">
       [W/A/S/D] 移動 | [Shift] ダッシュ | [Ctrl/C] しゃがみ隠れる<br>
       [E] アイテム取得 | [F] 爆竹使用（怪物麻痺）<br>
-      ※4つ目の鍵を取得すると、凶暴な追跡者が目を覚ます！
+      ※モンスターに触れると即ゲームオーバー！4つ目の鍵で高速追跡者出現！
     </div>
   </div>
 
@@ -230,6 +230,7 @@
         this.masterGain = null;
         this.volume = 0.7;
         this.bgmInterval = null;
+        this.melodyInterval = null;
         this.cicadaInterval = null;
         this.isBgmPlaying = false;
       }
@@ -265,34 +266,69 @@
           const filter = this.ctx.createBiquadFilter();
 
           osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(55, now);
-          osc.frequency.linearRampToValueAtTime(52, now + 4.0);
+          osc.frequency.setValueAtTime(48, now);
+          osc.frequency.linearRampToValueAtTime(45, now + 5.0);
 
           filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(180, now);
+          filter.frequency.setValueAtTime(140, now);
 
           gain.gain.setValueAtTime(0.001, now);
-          gain.gain.linearRampToValueAtTime(0.25, now + 1.5);
-          gain.gain.linearRampToValueAtTime(0.001, now + 5.0);
+          gain.gain.linearRampToValueAtTime(0.28, now + 2.0);
+          gain.gain.linearRampToValueAtTime(0.001, now + 6.0);
 
           osc.connect(filter);
           filter.connect(gain);
           gain.connect(this.masterGain);
 
           osc.start(now);
-          osc.stop(now + 5.2);
+          osc.stop(now + 6.2);
 
-          this.bgmInterval = setTimeout(playDrone, 4500 + Math.random() * 3000);
+          this.bgmInterval = setTimeout(playDrone, 5500 + Math.random() * 2000);
         };
         playDrone();
 
-        // セミの鳴き声（ジリリリリ...という高周波ノイズとフィルタ変調による再現）
+        // 恐怖を煽る不気味なシンセサイザーの旋律（ホラーメロディ）
+        const playScaryMelody = () => {
+          if (!this.isBgmPlaying || !this.ctx) return;
+          const now = this.ctx.currentTime;
+          
+          // 不協和音を含む不気味な音階（Hz）
+          const notes = [233.08, 220.00, 185.00, 164.81, 155.56]; 
+          const freq = notes[Math.floor(Math.random() * notes.length)];
+
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const filter = this.ctx.createBiquadFilter();
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now);
+          osc.frequency.exponentialRampToValueAtTime(freq * 0.95, now + 1.8);
+
+          filter.type = 'bandpass';
+          filter.frequency.setValueAtTime(800, now);
+          filter.Q.setValueAtTime(5, now);
+
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.linearRampToValueAtTime(0.12, now + 0.4);
+          gain.gain.linearRampToValueAtTime(0.001, now + 2.0);
+
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.masterGain);
+
+          osc.start(now);
+          osc.stop(now + 2.2);
+
+          this.melodyInterval = setTimeout(playScaryMelody, 2500 + Math.random() * 3000);
+        };
+        playScaryMelody();
+
+        // 調整されたリアルなセミの鳴き声（夏のホラー演出）
         const playCicada = () => {
           if (!this.isBgmPlaying || !this.ctx) return;
           const now = this.ctx.currentTime;
-          const duration = 2.5 + Math.random() * 2.0;
+          const duration = 1.8 + Math.random() * 2.2;
 
-          // ホワイトノイズ生成
           const bufferSize = this.ctx.sampleRate * duration;
           const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
           const data = buffer.getChannelData(0);
@@ -305,16 +341,16 @@
 
           const filter = this.ctx.createBiquadFilter();
           filter.type = 'bandpass';
-          filter.frequency.setValueAtTime(5000, now);
-          filter.Q.setValueAtTime(12, now);
+          // 周波数を少し変更し、より耳障りで寂寥感のある響きに
+          filter.frequency.setValueAtTime(6200, now);
+          filter.Q.setValueAtTime(15, now);
 
           const gain = this.ctx.createGain();
-          // 鳴き声特有の細かな震え（振幅変調）
           gain.gain.setValueAtTime(0.001, now);
-          gain.gain.linearRampToValueAtTime(0.08, now + 0.3);
+          gain.gain.linearRampToValueAtTime(0.06, now + 0.2);
           
-          for (let t = 0.3; t < duration - 0.3; t += 0.1) {
-            gain.gain.setValueAtTime(0.04 + Math.random() * 0.04, now + t);
+          for (let t = 0.2; t < duration - 0.2; t += 0.08) {
+            gain.gain.setValueAtTime(0.03 + Math.random() * 0.04, now + t);
           }
           gain.gain.linearRampToValueAtTime(0.001, now + duration);
 
@@ -325,13 +361,14 @@
           noise.start(now);
           noise.stop(now + duration);
 
-          this.cicadaInterval = setTimeout(playCicada, (duration + 1.0 + Math.random() * 3.0) * 1000);
+          this.cicadaInterval = setTimeout(playCicada, (duration + 0.8 + Math.random() * 2.5) * 1000);
         };
         playCicada();
       }
       stopBGM() {
         this.isBgmPlaying = false;
         if (this.bgmInterval) clearTimeout(this.bgmInterval);
+        if (this.melodyInterval) clearTimeout(this.melodyInterval);
         if (this.cicadaInterval) clearTimeout(this.cicadaInterval);
       }
       playHeartbeat() {
@@ -587,7 +624,7 @@
     const batteries = [];
     const firecrackerItems = [];
     let gateActivated = false;
-    let fastMonsterSpawned = false; // 4つ目の鍵フラグ
+    let fastMonsterSpawned = false;
 
     function getRandomSafePosition() {
       let pos = new THREE.Vector3();
@@ -690,16 +727,13 @@
       }
     }
 
-    // --- より怖く、おぞましい見た目のモンスター生成 ---
     function createScaryMonster(isFast = false) {
       const group = new THREE.Group();
 
-      // 腐敗した骨と肉体が剥き出しの胴体
       const bodyMat = new THREE.MeshStandardMaterial({ color: 0x221111, roughness: 0.9, metalness: 0.1 });
       const body = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.35, 3.6, 8), bodyMat);
       body.position.y = 1.8; group.add(body);
 
-      // 背骨や肋骨の不気味な突起パーツ
       const ribMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.5 });
       for (let i = 0; i < 4; i++) {
         const rib = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.06, 0.2), ribMat);
@@ -707,17 +741,14 @@
         group.add(rib);
       }
 
-      // 不気味に大きく歪んだ頭部
       const headMat = new THREE.MeshStandardMaterial({ color: 0x180808, roughness: 0.8 });
       const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 12, 12), headMat);
       head.position.y = 3.6; head.scale.set(0.85, 1.5, 1.1); group.add(head);
 
-      // 裂けた大きな口と牙
       const mouthMat = new THREE.MeshBasicMaterial({ color: 0x330000 });
       const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.15, 0.3), mouthMat);
       mouth.position.set(0, 3.35, 0.35); group.add(mouth);
 
-      // 多数の赤い狂気的な目
       const eyeMat = new THREE.MeshBasicMaterial({ color: isFast ? 0xffaa00 : 0xff0000 });
       for (let i = -1; i <= 1; i += 2) {
         const eye = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), eyeMat);
@@ -726,14 +757,12 @@
         eyeSub.position.set(i * 0.12, 3.9, 0.35); group.add(eyeSub);
       }
 
-      // 異様に長い不気味な腕
       const armMat = new THREE.MeshStandardMaterial({ color: 0x110505, roughness: 0.9 });
       const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.05, 2.5), armMat);
       armL.position.set(-0.5, 2.2, 0.2); armL.rotation.z = -0.4; group.add(armL);
       const armR = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.05, 2.5), armMat);
       armR.position.set(0.5, 2.2, 0.2); armR.rotation.z = 0.4; group.add(armR);
 
-      // 怪物自身の発光（高速タイプは黄色〜オレンジの不吉な光）
       const lightColor = isFast ? 0xff6600 : 0xff0000;
       const monsterLight = new THREE.PointLight(lightColor, 2.0, 7);
       monsterLight.position.set(0, 3.5, 0); group.add(monsterLight);
@@ -745,7 +774,7 @@
         isStunned: false, 
         stunTimer: 0, 
         isFast: isFast,
-        baseSpeed: isFast ? 4.8 : 2.4 // 4つ目の鍵で出現する高速モンスターはスピード倍増
+        baseSpeed: isFast ? 4.8 : 2.4
       };
     }
 
@@ -867,11 +896,9 @@
       audio.startBGM();
       spawnItems();
 
-      // 初期モンスターの位置設定
       monsters[0].pos.set(-30, 0, -30);
       monsters[1].pos.set(30, 0, -30);
       
-      // もし既に4つ目以降で高速モンスターが追加されていたらリセット時に削除
       if (monsters.length > 2) {
         monsters.slice(2).forEach(m => scene.remove(m.group));
         monsters.length = 2;
@@ -1056,18 +1083,15 @@
               showMsg("『鍵』を手に入れた！");
               audio.playSE(1200, 0.3, 'sine');
 
-              // --- 4つ目の鍵を取った瞬間に足の速いモンスターを召喚 ---
               if (keysCount === 4 && !fastMonsterSpawned) {
                 fastMonsterSpawned = true;
                 const fastMonster = createScaryMonster(true);
-                // プレイヤーから少し離れた位置にスポーン
                 fastMonster.pos.set(player.position.x + 15, 0, player.position.z - 15);
                 monsters.push(fastMonster);
                 showMsg("警告：足の速い禍々しい追跡者が現れた！");
                 audio.playSE(400, 0.8, 'sawtooth');
               }
 
-              // 5つ集まった瞬間にゲートを発動
               if (keysCount === 5) {
                 gateActivated = true;
                 showMsg("鳥居に脱出ゲートが出現した！鳥居へ向かえ！");
@@ -1146,6 +1170,7 @@
             }
           }
 
+          // しゃがみ状態に関わらず、普通に接触（距離1.4以内）したら即ゲームオーバー
           if (dist < 1.4) {
             triggerGameOver();
           }
