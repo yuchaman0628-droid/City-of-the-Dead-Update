@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>死の市 - Torii Escape Edition (Updated v4)</title>
+  <title>死の市 - Torii Escape Edition (Updated v5)</title>
   <style>
     * { box-sizing: border-box; }
     html, body {
@@ -129,7 +129,7 @@
 
   <div id="ui">
     <div class="hud-box">
-      <div>『死の市』中央鳥居 [UPDATE v4]</div>
+      <div>『死の市』中央鳥居 [UPDATE v5]</div>
       <div style="margin-top:2px;">鍵: <span id="key-count" style="color:#ffcc00; font-weight:bold;">0 / 5</span></div>
       <div>爆竹 [F]: <span id="firecracker-count" style="color:#ff3333; font-weight:bold;">0</span> 個</div>
       <div>TIME: <span id="timer-display">00:00</span></div>
@@ -165,7 +165,7 @@
 
   <div id="title-screen">
     <div style="font-size:64px; color:#b30000; font-weight:bold; letter-spacing:10px;">死 の 市</div>
-    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- TORII ESCAPE EDITION (REV.4) -</div>
+    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- TORII ESCAPE EDITION (REV.5) -</div>
     
     <div class="diff-selector">
       <button class="diff-btn" onclick="setDifficulty('easy', this)">EASY</button>
@@ -246,7 +246,6 @@
     // --- 3D 空間視界・照明・廃墟の都会背景 ---
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    // 場外の背景色を廃墟の都会らしい淀んだダークグレー・ブルーに変更
     scene.background = new THREE.Color(0x0e1116);
     scene.fog = new THREE.FogExp2(0x0e1116, 0.022);
 
@@ -277,10 +276,75 @@
     flashlight.target.position.set(0, 0, -1);
     camera.add(flashlight.target);
 
-    // 地面（アスファルト風）
+    // --- リアルなアスファルト道路テクスチャの生成 ---
+    function createAsphaltTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1024;
+      canvas.height = 1024;
+      const ctx = canvas.getContext('2d');
+
+      // 1. ベースのアスファルト地（ダークグレーの細かいノイズ）
+      ctx.fillStyle = '#1c1f24';
+      ctx.fillRect(0, 0, 1024, 1024);
+
+      // ノイズ（ざらざら感）の追加
+      for (let i = 0; i < 40000; i++) {
+        const x = Math.random() * 1024;
+        const y = Math.random() * 1024;
+        const shade = Math.floor(Math.random() * 40) + 15;
+        ctx.fillStyle = `rgb(${shade}, ${shade}, ${shade})`;
+        ctx.fillRect(x, y, 1.5, 1.5);
+      }
+
+      // ひび割れ・汚れの表現
+      ctx.strokeStyle = 'rgba(10, 12, 15, 0.4)';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 15; i++) {
+        ctx.beginPath();
+        let cx = Math.random() * 1024, cy = Math.random() * 1024;
+        ctx.moveTo(cx, cy);
+        for (let j = 0; j < 4; j++) {
+          cx += (Math.random() - 0.5) * 150;
+          cy += (Math.random() - 0.5) * 150;
+          ctx.lineTo(cx, cy);
+        }
+        ctx.stroke();
+      }
+
+      // 2. 道路の格子状グリッド（車道と歩道の区画ライン）を描画
+      // 十字路やブロックのラインをシミュレート
+      ctx.strokeStyle = '#2b303b';
+      ctx.lineWidth = 12;
+      ctx.strokeRect(32, 32, 960, 960);
+
+      // センターライン（黄色・点線）
+      ctx.strokeStyle = '#d4af37';
+      ctx.lineWidth = 8;
+      ctx.setLineDash([30, 20]);
+      
+      // 縦方向のセンターライン
+      ctx.beginPath(); ctx.moveTo(512, 64); ctx.lineTo(512, 960); ctx.stroke();
+      // 横方向のセンターライン
+      ctx.beginPath(); ctx.moveTo(64, 512); ctx.lineTo(960, 512); ctx.stroke();
+
+      ctx.setLineDash([]); // リセット
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(8, 8); // 街の広さに合わせてテクスチャをタイル状に繰り返し
+      return texture;
+    }
+
+    // 地面（リアルなアスファルト道路）の作成
+    const asphaltTex = createAsphaltTexture();
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(200, 200),
-      new THREE.MeshStandardMaterial({ color: 0x111317, roughness: 0.9 })
+      new THREE.MeshStandardMaterial({ 
+        map: asphaltTex, 
+        roughness: 0.85,
+        metalness: 0.05
+      })
     );
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
@@ -334,7 +398,7 @@
     function buildCity() {
       const bldgMat = new THREE.MeshStandardMaterial({ color: 0x181a20, roughness: 0.8 });
       const roofMat = new THREE.MeshStandardMaterial({ color: 0x0c0d12, roughness: 0.95 });
-      const windowMat = new THREE.MeshBasicMaterial({ color: 0x332811 }); // 廃墟のため明かりは消えかけの鈍い色
+      const windowMat = new THREE.MeshBasicMaterial({ color: 0x332811 });
 
       for (let z = -60; z <= 35; z += 18) {
         for (let x = -40; x <= 40; x += 22) {
@@ -364,7 +428,7 @@
         }
       }
 
-      // --- 外周の遠景廃墟ビル（場外の廃墟感を演出） ---
+      // --- 外周の遠景廃墟ビル ---
       const ruinMat = new THREE.MeshStandardMaterial({ color: 0x0f1115, roughness: 0.9 });
       const outerRuins = [
         {x: -75, z: -70, w: 25, d: 25, h: 30},
@@ -404,7 +468,6 @@
     }
 
     const keys = [];
-    // 完全に道路上（ビルの干渉を受けない通路の中央）にキー座標を配置
     const keyPositions = [
       new THREE.Vector3(0, 0.3, -48),
       new THREE.Vector3(-11, 0.3, -25),
