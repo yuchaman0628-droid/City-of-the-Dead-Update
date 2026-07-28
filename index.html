@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>死の市 - Torii Escape Edition (No-Crouch v13)</title>
+  <title>死の市 - Torii Escape Edition (Collision Fix v14)</title>
   <style>
     * { box-sizing: border-box; }
     html, body {
@@ -137,7 +137,7 @@
 
   <div id="ui">
     <div class="hud-box">
-      <div>『死の市』中央鳥居 [BLOOD MOON v13]</div>
+      <div>『死の市』中央鳥居 [BLOOD MOON v14]</div>
       <div style="margin-top:2px;">鍵: <span id="key-count" style="color:#ffcc00; font-weight:bold;">0 / 5</span></div>
       <div>爆竹 [F]: <span id="firecracker-count" style="color:#ff3333; font-weight:bold;">0</span> 個</div>
       <div>TIME: <span id="timer-display">00:00</span></div>
@@ -774,7 +774,7 @@
         { text: "🎆 爆竹を2個獲得！", act: () => { firecrackers += 2; updateUI(); } },
         { text: "📡 敵の位置を10秒間可視化！", act: () => { revealEnemiesTimer = 10.0; } },
         { text: "🔋 バッテリー全回復！", act: () => { battery = 100; } },
-        { text: "⚠️ ハズレ！モンスターが至近距離に！", act: () => { monsters[0].pos.set(player.position.x + 5, 0, player.position.z + 5); } }
+        { text: "⚠️ ハズレ！モンスターが至近距離に！", act: () => { monsters[0].pos.set(player.position.x + 3, 0, player.position.z + 3); } }
       ];
       const res = options[Math.floor(Math.random() * options.length)];
       document.getElementById('chance-result').textContent = res.text;
@@ -1136,8 +1136,8 @@
             }
           }
 
-          // 厳密な当たり判定（プレイヤーとモンスターの距離が1.5未満になったら即ゲームオーバー）
-          if (dist < 1.5) {
+          // 当たり判定の距離を「2.5」に拡大し、確実に接触判定が入るように修正
+          if (dist < 2.5) {
             triggerGameOver();
           }
         });
