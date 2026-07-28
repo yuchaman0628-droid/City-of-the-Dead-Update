@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>死の市 - Real Item Edition</title>
+  <title>死の市 - Torii Escape Edition</title>
   <style>
     * { box-sizing: border-box; }
     html, body {
@@ -130,7 +129,7 @@
 
   <div id="ui">
     <div class="hud-box">
-      <div>『死の市』逃走領域</div>
+      <div>『死の市』中央鳥居</div>
       <div style="margin-top:2px;">鍵: <span id="key-count" style="color:#ffcc00; font-weight:bold;">0 / 5</span></div>
       <div>爆竹 [F]: <span id="firecracker-count" style="color:#ff3333; font-weight:bold;">0</span> 個</div>
       <div>TIME: <span id="timer-display">00:00</span></div>
@@ -166,7 +165,7 @@
 
   <div id="title-screen">
     <div style="font-size:64px; color:#b30000; font-weight:bold; letter-spacing:10px;">死 の 市</div>
-    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- REALISTIC ITEM & FIX EDITION -</div>
+    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- TORII ESCAPE EDITION -</div>
     
     <div class="diff-selector">
       <button class="diff-btn" onclick="setDifficulty('easy', this)">EASY</button>
@@ -177,7 +176,8 @@
     <button class="btn-action" id="start-btn">街 に 入 る</button>
     <div style="font-size:11px; color:#777; margin-top:20px; line-height:1.6; text-align:center;">
       [W/A/S/D] 移動 | [Shift] ダッシュ | [Ctrl/C] しゃがみ隠れる<br>
-      [E] アイテム取得 | [F] 爆竹使用（怪物麻痺）| 金色の『鍵』を5つ探せ！
+      [E] アイテム取得 | [F] 爆竹使用（怪物麻痺）<br>
+      街のあちこちにある金色の『鍵』を5つ集め、**マップ中央の鳥居**へ向かえ！
     </div>
   </div>
 
@@ -189,7 +189,7 @@
 
   <div id="clear-overlay">
     <div style="font-size:54px; color:#00ff88; font-weight:bold;">E S C A P E D</div>
-    <div style="margin:10px 0; color:#eee;">脱出成功！</div>
+    <div style="margin:10px 0; color:#eee;">鳥居をくぐり、現世へ生還した！</div>
     <div style="font-size:20px; color:#ffcc00;" id="clear-rank">RANK: S</div>
     <div style="font-size:14px; color:#aaa; margin-bottom:20px;" id="clear-time-text">TIME: 00:00</div>
     <button class="btn-action" onclick="returnToTitle()">タイトルへ戻る</button>
@@ -226,7 +226,7 @@
     }
     const audio = new HorrorAudio();
 
-    // --- ゲーム難易度設定 ---
+    // --- 難易度設定 ---
     let difficulty = 'normal';
     let diffParams = { speedMult: 1.0, detectMult: 1.0 };
 
@@ -243,7 +243,7 @@
     let playTime = 0;
     let timerInterval = null;
 
-    // --- 3D 空間視界・照明の設定 ---
+    // --- 3D 空間視界・照明 ---
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x05070c);
@@ -276,7 +276,7 @@
     flashlight.target.position.set(0, 0, -1);
     camera.add(flashlight.target);
 
-    // 地面（アスファルト風）
+    // 地面
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(200, 200),
       new THREE.MeshStandardMaterial({ color: 0x15181c, roughness: 0.8 })
@@ -285,6 +285,51 @@
     scene.add(floor);
 
     const MAP_LIMIT = { minX: -60, maxX: 60, minZ: -65, maxZ: 45 };
+
+    // --- 鳥居（中央ゴール）の生成 ---
+    const toriiPosition = new THREE.Vector3(0, 0, -5);
+    function createTorii() {
+      const group = new THREE.Group();
+      const woodMat = new THREE.MeshStandardMaterial({ color: 0x881111, roughness: 0.6 });
+      const blackMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
+
+      // 柱 (左右)
+      const pillarGeo = new THREE.CylinderGeometry(0.3, 0.35, 5, 12);
+      const pillarL = new THREE.Mesh(pillarGeo, woodMat);
+      pillarL.position.set(-2, 2.5, 0);
+      group.add(pillarL);
+
+      const pillarR = new THREE.Mesh(pillarGeo, woodMat);
+      pillarR.position.set(2, 2.5, 0);
+      group.add(pillarR);
+
+      // 笠木 (一番上の反った横木)
+      const kasagiGeo = new THREE.BoxGeometry(5.2, 0.4, 0.6);
+      const kasagi = new THREE.Mesh(kasagiGeo, woodMat);
+      kasagi.position.set(0, 4.8, 0);
+      group.add(kasagi);
+
+      // 島木 (笠木の下の横木)
+      const shimagiGeo = new THREE.BoxGeometry(4.6, 0.3, 0.5);
+      const shimagi = new THREE.Mesh(shimagiGeo, blackMat);
+      shimagi.position.set(0, 4.3, 0);
+      group.add(shimagi);
+
+      // 貫 (下部の横木)
+      const nukiGeo = new THREE.BoxGeometry(4.6, 0.25, 0.4);
+      const nuki = new THREE.Mesh(nukiGeo, woodMat);
+      nuki.position.set(0, 3.2, 0);
+      group.add(nuki);
+
+      // 鳥居を照らす不気味なスポットライト
+      const toriiLight = new THREE.PointLight(0xff3300, 2.0, 10);
+      toriiLight.position.set(0, 3, 1);
+      group.add(toriiLight);
+
+      group.position.copy(toriiPosition);
+      scene.add(group);
+    }
+    createTorii();
 
     // --- 街並み・建物生成 ---
     const buildingColliders = [];
@@ -297,7 +342,7 @@
 
       for (let z = -60; z <= 35; z += 18) {
         for (let x = -40; x <= 40; x += 22) {
-          if (Math.abs(x) < 8 && z > -35) continue;
+          if (Math.abs(x) < 8 && Math.abs(z) < 12) continue; // 中央の鳥居周辺を空ける
 
           const w = 12, d = 12, h = 8 + Math.random() * 6;
           const bldg = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bldgMat);
@@ -322,26 +367,6 @@
           buildingRenderData.push({ x, z, w, d });
         }
       }
-
-      const poleMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
-      const lampMat = new THREE.MeshBasicMaterial({ color: 0xffeeaa });
-      const streetLampPos = [
-        new THREE.Vector3(-6, 0, 15), new THREE.Vector3(6, 0, -5),
-        new THREE.Vector3(-6, 0, -25), new THREE.Vector3(6, 0, -45)
-      ];
-      streetLampPos.forEach(p => {
-        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 4), poleMat);
-        pole.position.set(p.x, 2, p.z);
-        scene.add(pole);
-
-        const lightBulb = new THREE.Mesh(new THREE.SphereGeometry(0.3), lampMat);
-        lightBulb.position.set(p.x, 4, p.z);
-        scene.add(lightBulb);
-
-        const pointLight = new THREE.PointLight(0xffeeaa, 1.2, 12);
-        pointLight.position.set(p.x, 3.8, p.z);
-        scene.add(pointLight);
-      });
     }
     buildCity();
 
@@ -370,9 +395,9 @@
     const keyPositions = [
       new THREE.Vector3(-35, 0.3, -55),
       new THREE.Vector3(35, 0.3, -45),
-      new THREE.Vector3(-6, 0.3, -15),
-      new THREE.Vector3(-25, 0.3, 15),
-      new THREE.Vector3(25, 0.3, 20)
+      new THREE.Vector3(-25, 0.3, 30),
+      new THREE.Vector3(25, 0.3, 20),
+      new THREE.Vector3(0, 0.3, -45)
     ];
 
     const batteries = [];
@@ -502,7 +527,7 @@
     let isCrouching = false, isSprinting = false;
     let keysCount = 0;
     let revealEnemiesTimer = 0;
-    let nearbyItemAction = null; // 近くにあるアイテムの取得用アクション
+    let nearbyItemAction = null;
 
     let moveF = false, moveB = false, moveL = false, moveR = false;
 
@@ -601,7 +626,7 @@
 
     function startGame() {
       isPlaying = true; isPaused = false; keysCount = 0; stamina = 100; battery = 100; playTime = 0; firecrackers = 0;
-      player.position.set(0, 1.6, 25);
+      player.position.set(0, 1.6, 35);
       monsters[0].pos.set(0, 0, -45);
       monsters[1].pos.set(-20, 0, -10);
       spawnItems(); updateUI();
@@ -648,17 +673,23 @@
       }, 1300);
     }
 
+    // --- クリア判定（中央の鳥居に鍵5個で到達） ---
     function checkWin() {
-      if (player.position.z < -58 && keysCount >= keyPositions.length) {
-        isPlaying = false;
-        document.exitPointerLock();
-        document.getElementById('interact-prompt').style.display = 'none';
-        let rank = 'S';
-        if (playTime > 90) rank = 'A';
-        if (playTime > 150) rank = 'B';
-        document.getElementById('clear-rank').textContent = `RANK: ${rank}`;
-        document.getElementById('clear-time-text').textContent = `TIME: ${document.getElementById('timer-display').textContent}`;
-        document.getElementById('clear-overlay').style.display = 'flex';
+      const distToTorii = player.position.distanceTo(toriiPosition);
+      if (distToTorii < 2.5) {
+        if (keysCount >= keyPositions.length) {
+          isPlaying = false;
+          document.exitPointerLock();
+          document.getElementById('interact-prompt').style.display = 'none';
+          let rank = 'S';
+          if (playTime > 90) rank = 'A';
+          if (playTime > 150) rank = 'B';
+          document.getElementById('clear-rank').textContent = `RANK: ${rank}`;
+          document.getElementById('clear-time-text').textContent = `TIME: ${document.getElementById('timer-display').textContent}`;
+          document.getElementById('clear-overlay').style.display = 'flex';
+        } else {
+          showMsg(`鍵があと ${keyPositions.length - keysCount} 個足りない！`);
+        }
       }
     }
 
@@ -716,7 +747,7 @@
         player.position.z = nextZ;
       }
 
-      // --- アイテム取得チェック ([E]キーで取得) ---
+      // --- アイテム取得チェック ([E]キー) ---
       nearbyItemAction = null;
       let promptText = "";
 
@@ -760,13 +791,16 @@
       if (nearbyItemAction) {
         promptEl.textContent = promptText;
         promptEl.style.display = 'block';
+      } else if (player.position.distanceTo(toriiPosition) < 3.0) {
+        promptEl.textContent = keysCount >= 5 ? "[E] 鳥居をくぐり脱出する" : `[!] 鳥居（鍵あと ${5 - keysCount} 個）`;
+        promptEl.style.display = 'block';
       } else {
         promptEl.style.display = 'none';
       }
 
       if (revealEnemiesTimer > 0) revealEnemiesTimer -= delta;
 
-      // --- モンスターの移動・接触判定（シンプル化） ---
+      // --- モンスター処理 ---
       monsters.forEach(m => {
         if (m.isStunned) {
           m.stunTimer -= delta;
@@ -786,7 +820,6 @@
           if (dist < 12) audio.playHeartbeat();
         }
 
-        // 接触したらシンプルに即ゲームオーバー
         if (dist < 1.6) triggerJumpscare();
       });
 
@@ -810,42 +843,47 @@
         miniCtx.fillRect(cx + dx - w/2, cy + dz - d/2, w, d);
       });
 
-      miniCtx.fillStyle = '#ffcc00';
+      // ミニマップ上の鳥居（ゴール）の描画
+      const toriiDx = (toriiPosition.x - player.position.x) * scale;
+      const toriiDz = (toriiPosition.z - player.position.z) * scale;
+      miniCtx.fillStyle = '#ff3300';
+      miniCtx.fillRect(cx + toriiDx - 4, cy + toriiDz - 2, 8, 4);
+
+      // 鍵の描画
       keys.forEach(k => {
         if (!k.collected) {
           const dx = (k.pos.x - player.position.x) * scale;
           const dz = (k.pos.z - player.position.z) * scale;
-          if (Math.hypot(dx, dz) < 70) {
-            miniCtx.beginPath(); miniCtx.arc(cx + dx, cy + dz, 3.5, 0, Math.PI*2); miniCtx.fill();
+          if (Math.abs(dx) < 80 && Math.abs(dz) < 80) {
+            miniCtx.fillStyle = '#ffcc00';
+            miniCtx.beginPath(); miniCtx.arc(cx + dx, cy + dz, 3, 0, Math.PI * 2); miniCtx.fill();
           }
         }
       });
 
+      // 敵の描画
       monsters.forEach(m => {
         const dx = (m.pos.x - player.position.x) * scale;
         const dz = (m.pos.z - player.position.z) * scale;
-        const dist = Math.hypot(dx, dz);
-        if (dist < 70 && (dist < 20 || revealEnemiesTimer > 0)) {
-          miniCtx.fillStyle = '#ff0000';
-          miniCtx.beginPath(); miniCtx.arc(cx + dx, cy + dz, 4.5, 0, Math.PI*2); miniCtx.fill();
+        if (Math.abs(dx) < 80 && Math.abs(dz) < 80 || revealEnemiesTimer > 0) {
+          miniCtx.fillStyle = m.isStunned ? '#00ff88' : '#ff0000';
+          miniCtx.beginPath(); miniCtx.arc(cx + dx, cy + dz, 4, 0, Math.PI * 2); miniCtx.fill();
         }
       });
 
+      // プレイヤー自機
       miniCtx.save();
       miniCtx.translate(cx, cy);
       miniCtx.rotate(-player.rotation.y);
-      miniCtx.fillStyle = '#00ff88';
+      miniCtx.fillStyle = '#ffffff';
       miniCtx.beginPath();
-      miniCtx.moveTo(0, -6); miniCtx.lineTo(4, 5); miniCtx.lineTo(-4, 5);
-      miniCtx.closePath(); miniCtx.fill();
+      miniCtx.moveTo(0, -6);
+      miniCtx.lineTo(-4, 4);
+      miniCtx.lineTo(4, 4);
+      miniCtx.closePath();
+      miniCtx.fill();
       miniCtx.restore();
     }
-
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
 
     animate();
   </script>
