@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>死の市 - Torii Escape Edition (Updated v6)</title>
+  <title>死の市 - Torii Escape Edition (Audio & Options v7)</title>
   <style>
     * { box-sizing: border-box; }
     html, body {
@@ -89,12 +89,13 @@
     }
     .chest-card:hover { transform: translateY(-8px) scale(1.05); border-color: #ffdd66; box-shadow: 0 0 20px #ffcc00; }
 
-    #pause-menu, #title-screen, #gameover-overlay, #clear-overlay {
+    #pause-menu, #title-screen, #options-screen, #gameover-overlay, #clear-overlay {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       display: flex; flex-direction: column; justify-content: center; align-items: center; color: #eee;
     }
     #pause-menu { background: rgba(0, 0, 0, 0.9); z-index: 40; display: none; }
     #title-screen { background: radial-gradient(circle, rgba(40, 2, 2, 0.98) 0%, rgba(0,0,0,1) 100%); z-index: 30; }
+    #options-screen { background: rgba(10, 2, 2, 0.98); z-index: 45; display: none; }
     #gameover-overlay { background-color: rgba(30, 0, 0, 0.98); display: none; z-index: 50; }
     #clear-overlay { background-color: rgba(0, 20, 10, 0.95); display: none; z-index: 50; }
 
@@ -107,6 +108,10 @@
     .diff-selector { display: flex; gap: 15px; margin: 15px 0; }
     .diff-btn { background: #222; border: 1px solid #555; color: #aaa; padding: 6px 16px; cursor: pointer; font-size: 12px; }
     .diff-btn.active { border-color: #ffcc00; color: #ffcc00; font-weight: bold; background: #332a00; }
+
+    .option-group { margin: 12px 0; width: 300px; text-align: left; font-size: 14px; color: #ccc; }
+    .option-group label { display: block; margin-bottom: 5px; }
+    .option-group input[type="range"] { width: 100%; cursor: pointer; accent-color: #b30000; }
 
     #message-log {
       position: absolute; bottom: 40px; width: 100%; text-align: center;
@@ -129,7 +134,7 @@
 
   <div id="ui">
     <div class="hud-box">
-      <div>『死の市』中央鳥居 [BLOOD MOON v6]</div>
+      <div>『死の市』中央鳥居 [BLOOD MOON v7]</div>
       <div style="margin-top:2px;">鍵: <span id="key-count" style="color:#ffcc00; font-weight:bold;">0 / 5</span></div>
       <div>爆竹 [F]: <span id="firecracker-count" style="color:#ff3333; font-weight:bold;">0</span> 個</div>
       <div>TIME: <span id="timer-display">00:00</span></div>
@@ -156,16 +161,36 @@
     <div id="chance-result" style="margin-top:25px; font-size:18px; color:#00ff88; min-height:25px;"></div>
   </div>
 
+  <!-- オプション画面 -->
+  <div id="options-screen">
+    <div style="font-size:36px; color:#ffcc00; margin-bottom:20px; letter-spacing:4px;">オ プ シ ョ ン</div>
+    <div class="option-group">
+      <label>BGM 音量: <span id="bgm-val">50</span>%</label>
+      <input type="range" id="bgm-slider" min="0" max="100" value="50" oninput="updateOptions()">
+    </div>
+    <div class="option-group">
+      <label>SE 音量: <span id="se-val">70</span>%</label>
+      <input type="range" id="se-slider" min="0" max="100" value="70" oninput="updateOptions()">
+    </div>
+    <div class="option-group">
+      <label>視点感度: <span id="sens-val">2.0</span></label>
+      <input type="range" id="sens-slider" min="0.5" max="5.0" step="0.1" value="2.0" oninput="updateOptions()">
+    </div>
+    <button class="btn-action" onclick="closeOptions()">戻 る</button>
+  </div>
+
   <div id="pause-menu">
-    <div style="font-size:36px; color:#cc0000; margin-bottom:20px;">PAUSED</div>
+    <div style="font-size:36px; color:#cc0000; margin-bottom:10px;">PAUSED</div>
     <button class="btn-action" id="resume-btn">再 開</button>
+    <button class="btn-action" onclick="openOptions()">オプション</button>
+    <button class="btn-action" onclick="returnToTitle()">タイトルへ戻る</button>
   </div>
 
   <div id="message-log"></div>
 
   <div id="title-screen">
     <div style="font-size:64px; color:#b30000; font-weight:bold; letter-spacing:10px;">死 の 市</div>
-    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- BLOOD MOON EDITION -</div>
+    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- BLOOD MOON EDITION v7 -</div>
     
     <div class="diff-selector">
       <button class="diff-btn" onclick="setDifficulty('easy', this)">EASY</button>
@@ -174,6 +199,7 @@
     </div>
 
     <button class="btn-action" id="start-btn">街 に 入 る</button>
+    <button class="btn-action" onclick="openOptions()">オプション</button>
     <div style="font-size:11px; color:#777; margin-top:20px; line-height:1.6; text-align:center;">
       [W/A/S/D] 移動 | [Shift] ダッシュ | [Ctrl/C] しゃがみ隠れる<br>
       [E] アイテム取得 | [F] 爆竹使用（怪物麻痺）<br>
@@ -198,33 +224,164 @@
   <div id="canvas-container"></div>
 
   <script>
-    // --- 音声エンジン ---
+    // --- 音声・BGM・恐怖のモンスターサウンドエンジン ---
     class HorrorAudio {
-      constructor() { this.ctx = null; }
-      init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+      constructor() {
+        this.ctx = null;
+        this.bgmGain = null;
+        this.seGain = null;
+        this.bgmNode = null;
+        this.isBgmPlaying = false;
+        this.bgmVolume = 0.5;
+        this.seVolume = 0.7;
+      }
+
+      init() {
+        if (!this.ctx) {
+          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+          this.seGain = this.ctx.createGain();
+          this.seGain.gain.value = this.seVolume;
+          this.seGain.connect(this.ctx.destination);
+
+          this.bgmGain = this.ctx.createGain();
+          this.bgmGain.gain.value = this.bgmVolume;
+          this.bgmGain.connect(this.ctx.destination);
+        }
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      setVolumes(bgm, se) {
+        this.bgmVolume = bgm;
+        this.seVolume = se;
+        if (this.bgmGain) this.bgmGain.gain.value = bgm;
+        if (this.seGain) this.seGain.gain.value = se;
+      }
+
+      // 不気味なアンビエントBGM（低音のうなりと環境音をループ生成）
+      startBGM() {
+        if (this.isBgmPlaying || !this.ctx) return;
+        this.isBgmPlaying = true;
+
+        const playDrone = () => {
+          if (!this.isBgmPlaying) return;
+          const now = this.ctx.currentTime;
+          
+          // 不気味な低いドローン音
+          const osc = this.ctx.createOscillator();
+          const filter = this.ctx.createBiquadFilter();
+          const gain = this.ctx.createGain();
+
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(45 + Math.random() * 10, now);
+          
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(120, now);
+
+          gain.gain.setValueAtTime(0.01, now);
+          gain.gain.linearRampToValueAtTime(0.2, now + 3);
+          gain.gain.linearRampToValueAtTime(0.01, now + 8);
+
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.bgmGain);
+
+          osc.start(now);
+          osc.stop(now + 8);
+
+          setTimeout(playDrone, 7500);
+        };
+        playDrone();
+      }
+
+      stopBGM() {
+        this.isBgmPlaying = false;
+      }
+
+      // 恐怖の心音
       playHeartbeat() {
         if (!this.ctx) return;
         const now = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
-        osc.type = 'sine'; osc.frequency.setValueAtTime(55, now);
-        osc.frequency.exponentialRampToValueAtTime(10, now + 0.18);
-        gain.gain.setValueAtTime(0.9, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
-        osc.connect(gain); gain.connect(this.ctx.destination);
-        osc.start(now); osc.stop(now + 0.18);
+        osc.type = 'sine'; 
+        osc.frequency.setValueAtTime(50, now);
+        osc.frequency.exponentialRampToValueAtTime(15, now + 0.2);
+        gain.gain.setValueAtTime(1.0, now); 
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        osc.connect(gain); gain.connect(this.seGain);
+        osc.start(now); osc.stop(now + 0.2);
       }
+
+      // モンスターが近くにいる時の不気味なうなり声・息遣いSE
+      playMonsterBreath() {
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const filter = this.ctx.createBiquadFilter();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(70, now);
+        osc.frequency.linearRampToValueAtTime(40, now + 0.6);
+
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(300, now);
+
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.seGain);
+
+        osc.start(now);
+        osc.stop(now + 0.6);
+      }
+
       playSE(freq, duration, type='sine') {
         if (!this.ctx) return;
         const now = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = type; osc.frequency.setValueAtTime(freq, now);
-        gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
-        osc.connect(gain); gain.connect(this.ctx.destination);
+        gain.gain.setValueAtTime(0.4, now); gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+        osc.connect(gain); gain.connect(this.seGain);
         osc.start(now); osc.stop(now + duration);
       }
     }
     const audio = new HorrorAudio();
+
+    // --- 設定関連 ---
+    let mouseSensitivity = 0.002;
+    function updateOptions() {
+      const bgmVal = document.getElementById('bgm-slider').value;
+      const seVal = document.getElementById('se-slider').value;
+      const sensVal = document.getElementById('sens-slider').value;
+
+      document.getElementById('bgm-val').textContent = bgmVal;
+      document.getElementById('se-val').textContent = seVal;
+      document.getElementById('sens-val').textContent = parseFloat(sensVal).toFixed(1);
+
+      audio.setVolumes(bgmVal / 100, seVal / 100);
+      mouseSensitivity = 0.001 * parseFloat(sensVal);
+    }
+
+    function openOptions() {
+      document.getElementById('title-screen').style.display = 'none';
+      document.getElementById('pause-menu').style.display = 'none';
+      document.getElementById('options-screen').style.display = 'flex';
+    }
+
+    function closeOptions() {
+      document.getElementById('options-screen').style.display = 'none';
+      if (isPlaying) {
+        document.getElementById('pause-menu').style.display = 'flex';
+      } else {
+        document.getElementById('title-screen').style.display = 'flex';
+      }
+    }
 
     // --- 難易度設定 ---
     let difficulty = 'normal';
@@ -239,16 +396,13 @@
       if (diff === 'hard') diffParams = { speedMult: 1.35, detectMult: 1.4 };
     }
 
-    let mouseSensitivity = 0.002;
     let playTime = 0;
     let timerInterval = null;
 
     // --- 3D 空間視界・夜空・赤い月の設定 ---
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    // 夜空の背景色（漆黒に少し青みがかった闇）
     scene.background = new THREE.Color(0x040608);
-    // 霧も夜の闇に同化させる
     scene.fog = new THREE.FogExp2(0x040608, 0.020);
 
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 150);
@@ -264,24 +418,20 @@
     renderer.setPixelRatio(window.devicePixelRatio);
     container.appendChild(renderer.domElement);
 
-    // 夜間の環境光（少し青暗い光）
     const ambientLight = new THREE.AmbientLight(0x111622, 0.6);
     scene.add(ambientLight);
 
-    // --- 赤い月（ブラッドムーン）の作成 ---
+    // --- 赤い月（ブラッドムーン） ---
     const moonGroup = new THREE.Group();
-    // 月本体（発光する赤色のメッシュ）
     const moonGeo = new THREE.SphereGeometry(8, 32, 32);
     const moonMat = new THREE.MeshBasicMaterial({ color: 0xff2222 });
     const moonMesh = new THREE.Mesh(moonGeo, moonMat);
     moonGroup.add(moonMesh);
 
-    // 月からの赤い光（周囲を妖しく照らす）
     const redMoonLight = new THREE.DirectionalLight(0xff3333, 0.6);
     redMoonLight.position.set(40, 70, -60);
     scene.add(redMoonLight);
 
-    // 月の配置（空の遠くに固定）
     moonGroup.position.set(40, 70, -60);
     scene.add(moonGroup);
 
@@ -292,52 +442,28 @@
     flashlight.target.position.set(0, 0, -1);
     camera.add(flashlight.target);
 
-    // --- リアルなアスファルト道路テクスチャの生成 ---
+    // --- アスファルト道路テクスチャ生成 ---
     function createAsphaltTexture() {
       const canvas = document.createElement('canvas');
-      canvas.width = 1024;
-      canvas.height = 1024;
+      canvas.width = 1024; canvas.height = 1024;
       const ctx = canvas.getContext('2d');
-
-      ctx.fillStyle = '#181b20';
-      ctx.fillRect(0, 0, 1024, 1024);
+      ctx.fillStyle = '#181b20'; ctx.fillRect(0, 0, 1024, 1024);
 
       for (let i = 0; i < 40000; i++) {
-        const x = Math.random() * 1024;
-        const y = Math.random() * 1024;
+        const x = Math.random() * 1024, y = Math.random() * 1024;
         const shade = Math.floor(Math.random() * 35) + 12;
         ctx.fillStyle = `rgb(${shade}, ${shade}, ${shade})`;
         ctx.fillRect(x, y, 1.5, 1.5);
       }
 
-      ctx.strokeStyle = 'rgba(8, 10, 12, 0.5)';
-      ctx.lineWidth = 2;
-      for (let i = 0; i < 15; i++) {
-        ctx.beginPath();
-        let cx = Math.random() * 1024, cy = Math.random() * 1024;
-        ctx.moveTo(cx, cy);
-        for (let j = 0; j < 4; j++) {
-          cx += (Math.random() - 0.5) * 150;
-          cy += (Math.random() - 0.5) * 150;
-          ctx.lineTo(cx, cy);
-        }
-        ctx.stroke();
-      }
-
-      ctx.strokeStyle = '#252a33';
-      ctx.lineWidth = 12;
-      ctx.strokeRect(32, 32, 960, 960);
-
-      ctx.strokeStyle = '#d4af37';
-      ctx.lineWidth = 8;
+      ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 8;
       ctx.setLineDash([30, 20]);
       ctx.beginPath(); ctx.moveTo(512, 64); ctx.lineTo(512, 960); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(64, 512); ctx.lineTo(960, 512); ctx.stroke();
       ctx.setLineDash([]);
 
       const texture = new THREE.CanvasTexture(canvas);
-      texture.wrapS = THREE.RepeatWrapping;
-      texture.wrapT = THREE.RepeatWrapping;
+      texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping;
       texture.repeat.set(8, 8);
       return texture;
     }
@@ -345,18 +471,14 @@
     const asphaltTex = createAsphaltTexture();
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(200, 200),
-      new THREE.MeshStandardMaterial({ 
-        map: asphaltTex, 
-        roughness: 0.85,
-        metalness: 0.05
-      })
+      new THREE.MeshStandardMaterial({ map: asphaltTex, roughness: 0.85, metalness: 0.05 })
     );
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
 
     const MAP_LIMIT = { minX: -60, maxX: 60, minZ: -65, maxZ: 45 };
 
-    // --- 鳥居（中央ゴール）の生成 ---
+    // --- 鳥居 ---
     const toriiPosition = new THREE.Vector3(0, 0, -5);
     function createTorii() {
       const group = new THREE.Group();
@@ -364,109 +486,52 @@
       const blackMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
 
       const pillarGeo = new THREE.CylinderGeometry(0.3, 0.35, 5, 12);
-      const pillarL = new THREE.Mesh(pillarGeo, woodMat);
-      pillarL.position.set(-2, 2.5, 0);
-      group.add(pillarL);
+      const pillarL = new THREE.Mesh(pillarGeo, woodMat); pillarL.position.set(-2, 2.5, 0); group.add(pillarL);
+      const pillarR = new THREE.Mesh(pillarGeo, woodMat); pillarR.position.set(2, 2.5, 0); group.add(pillarR);
 
-      const pillarR = new THREE.Mesh(pillarGeo, woodMat);
-      pillarR.position.set(2, 2.5, 0);
-      group.add(pillarR);
-
-      const kasagiGeo = new THREE.BoxGeometry(5.2, 0.4, 0.6);
-      const kasagi = new THREE.Mesh(kasagiGeo, woodMat);
-      kasagi.position.set(0, 4.8, 0);
-      group.add(kasagi);
-
-      const shimagiGeo = new THREE.BoxGeometry(4.6, 0.3, 0.5);
-      const shimagi = new THREE.Mesh(shimagiGeo, blackMat);
-      shimagi.position.set(0, 4.3, 0);
-      group.add(shimagi);
-
-      const nukiGeo = new THREE.BoxGeometry(4.6, 0.25, 0.4);
-      const nuki = new THREE.Mesh(nukiGeo, woodMat);
-      nuki.position.set(0, 3.2, 0);
-      group.add(nuki);
+      const kasagi = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.4, 0.6), woodMat); kasagi.position.set(0, 4.8, 0); group.add(kasagi);
+      const shimagi = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.3, 0.5), blackMat); shimagi.position.set(0, 4.3, 0); group.add(shimagi);
+      const nuki = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.25, 0.4), woodMat); nuki.position.set(0, 3.2, 0); group.add(nuki);
 
       const toriiLight = new THREE.PointLight(0xff3300, 2.0, 10);
-      toriiLight.position.set(0, 3, 1);
-      group.add(toriiLight);
+      toriiLight.position.set(0, 3, 1); group.add(toriiLight);
 
       group.position.copy(toriiPosition);
       scene.add(group);
     }
     createTorii();
 
-    // --- 街並み・建物生成 ---
+    // --- 街並み ---
     const buildingColliders = [];
     const buildingRenderData = [];
 
     function buildCity() {
       const bldgMat = new THREE.MeshStandardMaterial({ color: 0x121418, roughness: 0.8 });
       const roofMat = new THREE.MeshStandardMaterial({ color: 0x08090c, roughness: 0.95 });
-      const windowMat = new THREE.MeshBasicMaterial({ color: 0x2e2310 });
 
       for (let z = -60; z <= 35; z += 18) {
         for (let x = -40; x <= 40; x += 22) {
           if (Math.abs(x) < 8 && Math.abs(z) < 12) continue;
-
           const w = 12, d = 12, h = 8 + Math.random() * 6;
           const bldg = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bldgMat);
-          bldg.position.set(x, h/2, z);
-          scene.add(bldg);
+          bldg.position.set(x, h/2, z); scene.add(bldg);
 
           const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 0.6, 0.4, d + 0.6), roofMat);
-          roof.position.set(x, h + 0.2, z);
-          scene.add(roof);
-
-          for (let wy = 2; wy < h - 1; wy += 2.5) {
-            for (let wx = -w/2 + 2; wx <= w/2 - 2; wx += 3) {
-              if (Math.random() > 0.6) {
-                const win = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.4), windowMat);
-                win.position.set(x + wx, wy, z + d/2 + 0.05);
-                scene.add(win);
-              }
-            }
-          }
+          roof.position.set(x, h + 0.2, z); scene.add(roof);
 
           buildingColliders.push({ minX: x - w/2 - 0.6, maxX: x + w/2 + 0.6, minZ: z - d/2 - 0.6, maxZ: z + d/2 + 0.6 });
           buildingRenderData.push({ x, z, w, d });
         }
       }
-
-      const ruinMat = new THREE.MeshStandardMaterial({ color: 0x0a0c10, roughness: 0.9 });
-      const outerRuins = [
-        {x: -75, z: -70, w: 25, d: 25, h: 30},
-        {x: 75, z: -70, w: 30, d: 20, h: 35},
-        {x: -75, z: 20, w: 20, d: 30, h: 25},
-        {x: 75, z: 20, w: 25, d: 25, h: 28},
-        {x: 0, z: -80, w: 40, d: 15, h: 32},
-        {x: 0, z: 60, w: 45, d: 20, h: 26}
-      ];
-      outerRuins.forEach(r => {
-        const ruinBldg = new THREE.Mesh(new THREE.BoxGeometry(r.w, r.h, r.d), ruinMat);
-        ruinBldg.position.set(r.x, r.h / 2, r.z);
-        scene.add(ruinBldg);
-      });
     }
     buildCity();
 
-    // --- 鍵モデル ---
+    // --- アイテム生成 ---
     function createKeyMesh() {
       const group = new THREE.Group();
       const goldMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, metalness: 0.8, roughness: 0.2 });
-
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.05, 8, 16), goldMat);
-      ring.position.y = 0.35;
-      group.add(ring);
-
-      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.5), goldMat);
-      shaft.position.y = 0.1;
-      group.add(shaft);
-
-      const bit = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.15, 0.04), goldMat);
-      bit.position.set(0.06, -0.05, 0);
-      group.add(bit);
-
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.05, 8, 16), goldMat); ring.position.y = 0.35; group.add(ring);
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.5), goldMat); shaft.position.y = 0.1; group.add(shaft);
       group.rotation.x = Math.PI / 4;
       return group;
     }
@@ -483,87 +548,23 @@
     const batteries = [];
     const firecrackerItems = [];
 
-    // --- アイテム生成 ---
     function spawnItems() {
-      keys.forEach(k => scene.remove(k.mesh));
-      keys.length = 0;
+      keys.forEach(k => scene.remove(k.mesh)); keys.length = 0;
       keyPositions.forEach(pos => {
-        const mesh = createKeyMesh();
-        mesh.position.copy(pos);
-        scene.add(mesh);
+        const mesh = createKeyMesh(); mesh.position.copy(pos); scene.add(mesh);
         keys.push({ mesh, pos, collected: false });
       });
 
-      function createBatteryMesh() {
-        const group = new THREE.Group();
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8, roughness: 0.3 });
-        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.32, 16), bodyMat);
-        body.position.y = 0.16;
-        group.add(body);
-
-        const capMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9, roughness: 0.1 });
-        const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.06, 12), capMat);
-        cap.position.y = 0.33;
-        group.add(cap);
-
-        const stripeMat = new THREE.MeshStandardMaterial({ color: 0xffaa00, metalness: 0.6, roughness: 0.4 });
-        const stripe = new THREE.Mesh(new THREE.CylinderGeometry(0.102, 0.102, 0.1, 16), stripeMat);
-        stripe.position.y = 0.22;
-        group.add(stripe);
-
-        group.rotation.z = Math.PI / 2;
-        return group;
-      }
-
-      batteries.forEach(b => scene.remove(b.mesh));
-      batteries.length = 0;
-      const batPositions = [
-        new THREE.Vector3(0, 0.1, -12),
-        new THREE.Vector3(-11, 0.1, -12),
-        new THREE.Vector3(11, 0.1, 18),
-        new THREE.Vector3(0, 0.1, 26)
-      ];
-      batPositions.forEach(pos => {
-        const mesh = createBatteryMesh();
+      batteries.forEach(b => scene.remove(b.mesh)); batteries.length = 0;
+      [new THREE.Vector3(0, 0.1, -12), new THREE.Vector3(-11, 0.1, -12), new THREE.Vector3(11, 0.1, 18)].forEach(pos => {
+        const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.3, 8), new THREE.MeshStandardMaterial({ color: 0xffaa00 }));
         mesh.position.copy(pos); scene.add(mesh);
         batteries.push({ mesh, pos, collected: false });
       });
 
-      function createFirecrackerMesh() {
-        const group = new THREE.Group();
-        const redMat = new THREE.MeshStandardMaterial({ color: 0xcc1111, roughness: 0.5 });
-        const fuseMat = new THREE.MeshBasicMaterial({ color: 0xddccaa });
-        const bandMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
-
-        const offsets = [{x: -0.06, z: -0.04}, {x: 0.06, z: -0.04}, {x: 0, z: 0.06}];
-        offsets.forEach(off => {
-          const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.28, 12), redMat);
-          stick.position.set(off.x, 0.14, off.z);
-          group.add(stick);
-
-          const fuse = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.1, 8), fuseMat);
-          fuse.position.set(off.x, 0.31, off.z);
-          fuse.rotation.z = (Math.random() - 0.5) * 0.4;
-          group.add(fuse);
-        });
-
-        const band = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.05, 12), bandMat);
-        band.position.y = 0.14;
-        group.add(band);
-
-        return group;
-      }
-
-      firecrackerItems.forEach(fc => scene.remove(fc.mesh));
-      firecrackerItems.length = 0;
-      const fcPositions = [
-        new THREE.Vector3(0, 0.1, -38),
-        new THREE.Vector3(-11, 0.1, -38),
-        new THREE.Vector3(11, 0.1, -38),
-        new THREE.Vector3(0, 0.1, 12)
-      ];
-      fcPositions.forEach(pos => {
-        const mesh = createFirecrackerMesh();
+      firecrackerItems.forEach(fc => scene.remove(fc.mesh)); firecrackerItems.length = 0;
+      [new THREE.Vector3(0, 0.1, -38), new THREE.Vector3(11, 0.1, -38)].forEach(pos => {
+        const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.3, 8), new THREE.MeshStandardMaterial({ color: 0xcc1111 }));
         mesh.position.copy(pos); scene.add(mesh);
         firecrackerItems.push({ mesh, pos, collected: false });
       });
@@ -572,46 +573,33 @@
     // --- モンスター生成 ---
     function createScaryMonster() {
       const group = new THREE.Group();
-
       const bodyMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.9 });
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.1, 3.8, 8), bodyMat);
-      body.position.y = 1.9;
-      group.add(body);
-
-      const headMat = new THREE.MeshBasicMaterial({ color: 0x110000 });
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8), headMat);
-      head.position.y = 3.7;
-      head.scale.set(0.8, 1.3, 0.8);
-      group.add(head);
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.1, 3.8, 8), bodyMat); body.position.y = 1.9; group.add(body);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8), new THREE.MeshBasicMaterial({ color: 0x110000 }));
+      head.position.y = 3.7; head.scale.set(0.8, 1.3, 0.8); group.add(head);
 
       const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-      const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.08), eyeMat);
-      eyeL.position.set(-0.15, 3.8, 0.3);
-      const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.08), eyeMat);
-      eyeR.position.set(0.15, 3.8, 0.3);
+      const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.08), eyeMat); eyeL.position.set(-0.15, 3.8, 0.3);
+      const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.08), eyeMat); eyeR.position.set(0.15, 3.8, 0.3);
       group.add(eyeL); group.add(eyeR);
 
       const monsterLight = new THREE.PointLight(0xff0000, 1.5, 6);
-      monsterLight.position.set(0, 3.5, 0);
-      group.add(monsterLight);
+      monsterLight.position.set(0, 3.5, 0); group.add(monsterLight);
 
       scene.add(group);
-      return { group, pos: group.position, isStunned: false, stunTimer: 0 };
+      return { group, pos: group.position, isStunned: false, stunTimer: 0, soundCooldown: 0 };
     }
 
     const monsters = [ createScaryMonster(), createScaryMonster() ];
 
-    // ゲーム変数
     let isPlaying = false, isPaused = false, isChanceTime = false;
     let stamina = 100, battery = 100, firecrackers = 0;
     let isCrouching = false, isSprinting = false;
     let keysCount = 0;
     let revealEnemiesTimer = 0;
     let nearbyItemAction = null;
-
     let moveF = false, moveB = false, moveL = false, moveR = false;
 
-    // チャンスタイム
     function triggerChanceTime() {
       isChanceTime = true;
       document.exitPointerLock();
@@ -623,8 +611,7 @@
       const options = [
         { text: "🎆 爆竹を2個獲得！", act: () => { firecrackers += 2; updateUI(); } },
         { text: "📡 敵の位置を10秒間可視化！", act: () => { revealEnemiesTimer = 10.0; } },
-        { text: "🔋 バッテリー全回復！", act: () => { battery = 100; } },
-        { text: "⚠️ ハズレ！モンスターが至近距離に！", act: () => { monsters[0].pos.set(player.position.x + 5, 0, player.position.z + 5); } }
+        { text: "🔋 バッテリー全回復！", act: () => { battery = 100; } }
       ];
       const res = options[Math.floor(Math.random() * options.length)];
       document.getElementById('chance-result').textContent = res.text;
@@ -657,21 +644,16 @@
       if (e.code === 'KeyD') moveR = true;
       if (e.code === 'ShiftLeft') isSprinting = true;
       if (e.code === 'ControlLeft' || e.code === 'KeyC') {
-        isCrouching = !isCrouching;
-        player.position.y = isCrouching ? 0.8 : 1.6;
+        isCrouching = !isCrouching; player.position.y = isCrouching ? 0.8 : 1.6;
       }
-      if (e.code === 'KeyE') {
-        if (nearbyItemAction) {
-          nearbyItemAction();
-          nearbyItemAction = null;
-          document.getElementById('interact-prompt').style.display = 'none';
-        }
+      if (e.code === 'KeyE' && nearbyItemAction) {
+        nearbyItemAction(); nearbyItemAction = null;
+        document.getElementById('interact-prompt').style.display = 'none';
       }
       if (e.code === 'KeyF') {
         if (firecrackers > 0) {
-          firecrackers--;
-          updateUI();
-          showMsg("爆竹を使用！爆音で怪物たちが麻痺！");
+          firecrackers--; updateUI();
+          showMsg("爆竹を使用！怪物たちが麻痺！");
           audio.playSE(900, 0.5, 'sawtooth');
           monsters.forEach(m => { m.isStunned = true; m.stunTimer = 6.0; });
         } else {
@@ -706,9 +688,7 @@
 
     function startGame() {
       isPlaying = true; isPaused = false; keysCount = 0; stamina = 100; battery = 100; playTime = 0; firecrackers = 0;
-      player.position.set(0, 1.6, 1);
-      player.rotation.y = 0;
-      camera.rotation.x = 0;
+      player.position.set(0, 1.6, 1); player.rotation.y = 0; camera.rotation.x = 0;
 
       monsters[0].pos.set(-15, 0, -35);
       monsters[1].pos.set(15, 0, -40);
@@ -717,7 +697,9 @@
       document.getElementById('ui').style.display = 'block';
       document.getElementById('minimap-container').style.display = 'block';
       document.getElementById('crosshair').style.display = 'block';
+      
       audio.init();
+      audio.startBGM();
       document.body.requestPointerLock();
 
       clearInterval(timerInterval);
@@ -734,6 +716,7 @@
 
     function returnToTitle() {
       isPlaying = false;
+      audio.stopBGM();
       document.getElementById('gameover-overlay').style.display = 'none';
       document.getElementById('clear-overlay').style.display = 'none';
       document.getElementById('jumpscare-overlay').style.display = 'none';
@@ -742,10 +725,12 @@
       document.getElementById('minimap-container').style.display = 'none';
       document.getElementById('crosshair').style.display = 'none';
       document.getElementById('interact-prompt').style.display = 'none';
+      document.getElementById('pause-menu').style.display = 'none';
     }
 
     function triggerJumpscare() {
       isPlaying = false;
+      audio.stopBGM();
       document.exitPointerLock();
       document.getElementById('interact-prompt').style.display = 'none';
       document.getElementById('jumpscare-overlay').style.display = 'flex';
@@ -756,25 +741,6 @@
       }, 1300);
     }
 
-    function checkWin() {
-      const distToTorii = player.position.distanceTo(toriiPosition);
-      if (distToTorii < 2.5) {
-        if (keysCount >= keyPositions.length) {
-          isPlaying = false;
-          document.exitPointerLock();
-          document.getElementById('interact-prompt').style.display = 'none';
-          let rank = 'S';
-          if (playTime > 90) rank = 'A';
-          if (playTime > 150) rank = 'B';
-          document.getElementById('clear-rank').textContent = `RANK: ${rank}`;
-          document.getElementById('clear-time-text').textContent = `TIME: ${document.getElementById('timer-display').textContent}`;
-          document.getElementById('clear-overlay').style.display = 'flex';
-        } else {
-          showMsg(`鍵があと ${keyPositions.length - keysCount} 個足りない！`);
-        }
-      }
-    }
-
     let lastTime = performance.now();
 
     function animate() {
@@ -783,28 +749,20 @@
       const delta = Math.min((now - lastTime) / 1000, 0.1);
       lastTime = now;
 
-      keys.forEach(k => {
-        if (!k.collected) k.mesh.rotation.y += delta * 2.0;
-      });
-
+      keys.forEach(k => { if (!k.collected) k.mesh.rotation.y += delta * 2.0; });
       renderer.render(scene, camera);
 
       if (!isPlaying || isPaused || isChanceTime) return;
 
       if (battery > 0) {
-        battery -= delta * 0.8;
-        flashlight.intensity = (battery / 100) * 4.5;
-      } else {
-        flashlight.intensity = 0.15;
-      }
+        battery -= delta * 0.8; flashlight.intensity = (battery / 100) * 4.5;
+      } else { flashlight.intensity = 0.15; }
 
       let speed = 4.8;
       if (isCrouching) speed = 2.2;
       else if (isSprinting && stamina > 0 && (moveF||moveB||moveL||moveR)) {
         speed = 8.5; stamina -= delta * 25;
-      } else if (stamina < 100) {
-        stamina += delta * 15;
-      }
+      } else if (stamina < 100) { stamina += delta * 15; }
 
       const moveDir = new THREE.Vector3();
       if (moveF) moveDir.z -= 1; if (moveB) moveDir.z += 1;
@@ -816,18 +774,11 @@
 
       let collide = false;
       for (let b of buildingColliders) {
-        if (nextX > b.minX && nextX < b.maxX && nextZ > b.minZ && nextZ < b.maxZ) {
-          collide = true; break;
-        }
+        if (nextX > b.minX && nextX < b.maxX && nextZ > b.minZ && nextZ < b.maxZ) { collide = true; break; }
       }
-      if (nextX < MAP_LIMIT.minX || nextX > MAP_LIMIT.maxX || nextZ < MAP_LIMIT.minZ || nextZ > MAP_LIMIT.maxZ) {
-        collide = true;
-      }
+      if (nextX < MAP_LIMIT.minX || nextX > MAP_LIMIT.maxX || nextZ < MAP_LIMIT.minZ || nextZ > MAP_LIMIT.maxZ) collide = true;
 
-      if (!collide) {
-        player.position.x = nextX;
-        player.position.z = nextZ;
-      }
+      if (!collide) { player.position.x = nextX; player.position.z = nextZ; }
 
       nearbyItemAction = null;
       let promptText = "";
@@ -844,47 +795,26 @@
         }
       });
 
-      if (!nearbyItemAction) {
-        batteries.forEach(b => {
-          if (!b.collected && player.position.distanceTo(b.pos) < 2.0) {
-            promptText = "[E] 乾電池を拾う";
-            nearbyItemAction = () => {
-              b.collected = true; scene.remove(b.mesh); battery = Math.min(100, battery + 50);
-              showMsg("乾電池を獲得！ライト回復！"); audio.playSE(450, 0.2); updateUI();
-            };
-          }
-        });
-      }
-
-      if (!nearbyItemAction) {
-        firecrackerItems.forEach(fc => {
-          if (!fc.collected && player.position.distanceTo(fc.pos) < 2.0) {
-            promptText = "[E] 爆竹を拾う";
-            nearbyItemAction = () => {
-              fc.collected = true; scene.remove(fc.mesh); firecrackers++;
-              showMsg("爆竹を拾った！ [F]キーで投擲"); audio.playSE(750, 0.2); updateUI();
-            };
-          }
-        });
-      }
-
       const promptEl = document.getElementById('interact-prompt');
       if (nearbyItemAction) {
-        promptEl.textContent = promptText;
-        promptEl.style.display = 'block';
+        promptEl.textContent = promptText; promptEl.style.display = 'block';
       } else if (player.position.distanceTo(toriiPosition) < 3.0) {
         promptEl.textContent = keysCount >= 5 ? "[E] 鳥居をくぐり脱出する" : `[!] 鳥居（鍵あと ${5 - keysCount} 個）`;
         promptEl.style.display = 'block';
+        if (keysCount >= 5 && player.position.distanceTo(toriiPosition) < 2.5) {
+          isPlaying = false; audio.stopBGM(); document.exitPointerLock();
+          promptEl.style.display = 'none';
+          document.getElementById('clear-rank').textContent = `RANK: S`;
+          document.getElementById('clear-time-text').textContent = `TIME: ${document.getElementById('timer-display').textContent}`;
+          document.getElementById('clear-overlay').style.display = 'flex';
+        }
       } else {
         promptEl.style.display = 'none';
       }
 
-      if (revealEnemiesTimer > 0) revealEnemiesTimer -= delta;
-
       monsters.forEach(m => {
         if (m.isStunned) {
-          m.stunTimer -= delta;
-          if (m.stunTimer <= 0) m.isStunned = false;
+          m.stunTimer -= delta; if (m.stunTimer <= 0) m.isStunned = false;
           return;
         }
 
@@ -894,34 +824,24 @@
         if (dist < detectDist) {
           const dir = new THREE.Vector3().subVectors(player.position, m.pos).normalize();
           const monsterSpeed = 4.1 * diffParams.speedMult;
-          const nextMx = m.pos.x + dir.x * monsterSpeed * delta;
-          const mz = m.pos.z;
-          
-          let mCollideX = false;
-          for (let b of buildingColliders) {
-            if (nextMx > b.minX && nextMx < b.maxX && mz > b.minZ && mz < b.maxZ) { mCollideX = true; break; }
-          }
-          if (!mCollideX) m.pos.x = nextMx;
-
-          const mx = m.pos.x;
-          const nextMz = m.pos.z + dir.z * monsterSpeed * delta;
-          
-          let mCollideZ = false;
-          for (let b of buildingColliders) {
-            if (mx > b.minX && mx < b.maxX && nextMz > b.minZ && nextMz < b.maxZ) { mCollideZ = true; break; }
-          }
-          if (!mCollideZ) m.pos.z = nextMz;
-
+          m.pos.x += dir.x * monsterSpeed * delta;
+          m.pos.z += dir.z * monsterSpeed * delta;
           m.group.rotation.y = Math.atan2(dir.x, dir.z);
           m.group.position.y = Math.sin(now * 0.005) * 0.2;
 
-          if (dist < 12) audio.playHeartbeat();
+          if (dist < 15) {
+            audio.playHeartbeat();
+            m.soundCooldown -= delta;
+            if (m.soundCooldown <= 0) {
+              audio.playMonsterBreath();
+              m.soundCooldown = Math.max(1.5, dist * 0.3);
+            }
+          }
         }
 
         if (dist < 1.6) triggerJumpscare();
       });
 
-      checkWin();
       updateMinimap();
       updateUI();
     }
@@ -937,8 +857,7 @@
       buildingRenderData.forEach(b => {
         const dx = (b.x - player.position.x) * scale;
         const dz = (b.z - player.position.z) * scale;
-        const w = b.w * scale, d = b.d * scale;
-        miniCtx.fillRect(cx + dx - w/2, cy + dz - d/2, w, d);
+        miniCtx.fillRect(cx + dx - (b.w*scale)/2, cy + dz - (b.d*scale)/2, b.w*scale, b.d*scale);
       });
 
       const toriiDx = (toriiPosition.x - player.position.x) * scale;
@@ -950,10 +869,8 @@
         if (!k.collected) {
           const dx = (k.pos.x - player.position.x) * scale;
           const dz = (k.pos.z - player.position.z) * scale;
-          if (Math.abs(dx) < 80 && Math.abs(dz) < 80) {
-            miniCtx.fillStyle = '#ffcc00';
-            miniCtx.beginPath(); miniCtx.arc(cx + dx, cy + dz, 3, 0, Math.PI * 2); miniCtx.fill();
-          }
+          miniCtx.fillStyle = '#ffcc00';
+          miniCtx.beginPath(); miniCtx.arc(cx + dx, cy + dz, 3, 0, Math.PI * 2); miniCtx.fill();
         }
       });
 
@@ -971,11 +888,8 @@
       miniCtx.rotate(-player.rotation.y);
       miniCtx.fillStyle = '#ffffff';
       miniCtx.beginPath();
-      miniCtx.moveTo(0, -6);
-      miniCtx.lineTo(-4, 4);
-      miniCtx.lineTo(4, 4);
-      miniCtx.closePath();
-      miniCtx.fill();
+      miniCtx.moveTo(0, -6); miniCtx.lineTo(-4, 4); miniCtx.lineTo(4, 4);
+      miniCtx.closePath(); miniCtx.fill();
       miniCtx.restore();
     }
 
