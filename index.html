@@ -1,4 +1,112 @@
-12px; }
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>死の市 - Torii Escape Edition (Updated v7)</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      margin: 0; padding: 0;
+      overflow: hidden;
+      background-color: #050202;
+      font-family: 'Courier New', Courier, serif, monospace;
+      user-select: none;
+    }
+
+    #canvas-container { width: 100vw; height: 100vh; display: block; position: absolute; top: 0; left: 0; z-index: 1; }
+
+    #vhs-overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+      background: repeating-linear-gradient(0deg, rgba(0,0,0,0.1), rgba(0,0,0,0.1) 1px, transparent 1px, transparent 2px);
+      box-shadow: inset 0 0 150px rgba(0,0,0,0.9);
+      z-index: 10;
+    }
+
+    #jumpscare-overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle, rgba(180,0,0,0.95) 0%, rgba(0,0,0,1) 80%);
+      display: none; justify-content: center; align-items: center;
+      flex-direction: column; z-index: 60;
+    }
+    .jumpscare-face {
+      font-size: 180px; text-shadow: 0 0 60px #f00, 0 0 120px #ff0000;
+      animation: scareZoom 0.08s infinite alternate;
+    }
+    @keyframes scareZoom {
+      0% { transform: scale(1) rotate(-8deg); }
+      100% { transform: scale(1.45) rotate(8deg); }
+    }
+
+    #crosshair {
+      position: absolute; top: 50%; left: 50%; width: 6px; height: 6px;
+      background-color: rgba(255, 255, 255, 0.8); border-radius: 50%;
+      transform: translate(-50%, -50%); z-index: 20; display: none; pointer-events: none;
+    }
+
+    #ui {
+      position: absolute; top: 20px; left: 20px; color: #ddd;
+      z-index: 20; font-size: 12px; letter-spacing: 2px; display: none; pointer-events: none;
+    }
+
+    .hud-box {
+      background: rgba(0, 0, 0, 0.85); padding: 10px 14px;
+      border: 1px solid #444; border-left: 4px solid #b30000; margin-bottom: 8px;
+    }
+
+    .bar-bg { width: 140px; height: 6px; background: #222; border: 1px solid #555; margin-top: 4px; }
+    .bar-fill { width: 100%; height: 100%; transition: width 0.1s linear; }
+    #stamina-bar { background: #00b359; }
+    #battery-bar { background: #0088ff; }
+
+    #interact-prompt {
+      position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%);
+      color: #ffcc00; font-size: 16px; font-weight: bold; letter-spacing: 2px;
+      background: rgba(0, 0, 0, 0.8); padding: 6px 16px; border: 1px solid #ffcc00;
+      border-radius: 4px; display: none; z-index: 20; pointer-events: none;
+    }
+
+    #minimap-container {
+      position: absolute; bottom: 20px; right: 20px; width: 160px; height: 160px;
+      background: rgba(5, 5, 10, 0.9); border: 2px solid #666; border-radius: 50%;
+      z-index: 25; display: none; box-shadow: 0 0 20px rgba(0,0,0,0.9); overflow: hidden;
+    }
+    #minimap-canvas { width: 100%; height: 100%; }
+
+    #chance-screen {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(5, 2, 10, 0.95); display: none; flex-direction: column;
+      justify-content: center; align-items: center; z-index: 45; color: #fff;
+    }
+    .chance-title { font-size: 36px; color: #ffcc00; letter-spacing: 6px; margin-bottom: 10px; text-shadow: 0 0 20px #ffcc00; }
+    .box-container { display: flex; gap: 20px; }
+    .chest-card {
+      width: 120px; height: 160px; background: radial-gradient(circle, #2a2015 0%, #110b05 100%);
+      border: 2px solid #aa8833; border-radius: 8px; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; cursor: pointer; transition: all 0.3s;
+    }
+    .chest-card:hover { transform: translateY(-8px) scale(1.05); border-color: #ffdd66; box-shadow: 0 0 20px #ffcc00; }
+
+    #pause-menu, #title-screen, #options-screen, #gameover-overlay, #clear-overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; flex-direction: column; justify-content: center; align-items: center; color: #eee;
+    }
+    #pause-menu { background: rgba(0, 0, 0, 0.9); z-index: 40; display: none; }
+    #title-screen { background: radial-gradient(circle, rgba(40, 2, 2, 0.98) 0%, rgba(0,0,0,1) 100%); z-index: 30; }
+    #options-screen { background: rgba(10, 3, 3, 0.96); z-index: 55; display: none; }
+    #gameover-overlay { background-color: rgba(30, 0, 0, 0.98); display: none; z-index: 50; }
+    #clear-overlay { background-color: rgba(0, 20, 10, 0.95); display: none; z-index: 50; }
+
+    .btn-action {
+      background: transparent; border: 1px solid #666; color: #ddd;
+      padding: 12px 36px; font-size: 16px; font-family: inherit; letter-spacing: 3px; cursor: pointer; transition: all 0.3s; margin-top: 15px;
+    }
+    .btn-action:hover { background: #800000; color: #fff; border-color: #f00; box-shadow: 0 0 15px #f00; }
+
+    .diff-selector { display: flex; gap: 15px; margin: 15px 0; }
+    .diff-btn { background: #222; border: 1px solid #555; color: #aaa; padding: 6px 16px; cursor: pointer; font-size: 12px; }
     .diff-btn.active { border-color: #ffcc00; color: #ffcc00; font-weight: bold; background: #332a00; }
 
     .option-group {
