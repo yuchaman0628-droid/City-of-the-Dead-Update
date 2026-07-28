@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>死の市 - Real Item Edition (Fixed & Updated)</title>
+  <title>死の市 - Real Item Edition (Goal Added)</title>
   <style>
     * { box-sizing: border-box; }
     html, body {
@@ -165,7 +165,7 @@
 
   <div id="title-screen">
     <div style="font-size:64px; color:#b30000; font-weight:bold; letter-spacing:10px;">死 の 市</div>
-    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- REALISTIC ITEM & FIX EDITION -</div>
+    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- REALISTIC ITEM & GOAL EDITION -</div>
     
     <div class="diff-selector">
       <button class="diff-btn" onclick="setDifficulty('easy', this)">EASY</button>
@@ -176,7 +176,7 @@
     <button class="btn-action" id="start-btn">街 に 入 る</button>
     <div style="font-size:11px; color:#777; margin-top:20px; line-height:1.6; text-align:center;">
       [W/A/S/D] 移動 | [Shift] ダッシュ | [Ctrl/C] しゃがみ隠れる<br>
-      [E] アイテム取得 | [F] 爆竹使用（怪物麻痺）| 金色の『鍵』を5つ探せ！
+      鍵を5つ集めて、マップ中央の「死の市」の門から脱出せよ！
     </div>
   </div>
 
@@ -188,7 +188,7 @@
 
   <div id="clear-overlay">
     <div style="font-size:54px; color:#00ff88; font-weight:bold;">E S C A P E D</div>
-    <div style="margin:10px 0; color:#eee;">脱出成功！</div>
+    <div style="margin:10px 0; color:#eee;">脱出成功！「死の市」から生き延びた！</div>
     <div style="font-size:20px; color:#ffcc00;" id="clear-rank">RANK: S</div>
     <div style="font-size:14px; color:#aaa; margin-bottom:20px;" id="clear-time-text">TIME: 00:00</div>
     <button class="btn-action" onclick="returnToTitle()">タイトルへ戻る</button>
@@ -299,7 +299,8 @@
 
       for (let z = -60; z <= 35; z += 18) {
         for (let x = -40; x <= 40; x += 22) {
-          if (Math.abs(x) < 8 && z > -35) continue;
+          // マップ中央付近（ゴール周辺）は建物を生成しない
+          if (Math.abs(x) < 14 && Math.abs(z + 10) < 14) continue;
 
           const w = 12, d = 12, h = 8 + Math.random() * 6;
           const bldg = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bldgMat);
@@ -328,8 +329,8 @@
       const poleMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
       const lampMat = new THREE.MeshBasicMaterial({ color: 0xffeeaa });
       const streetLampPos = [
-        new THREE.Vector3(-6, 0, 15), new THREE.Vector3(6, 0, -5),
-        new THREE.Vector3(-6, 0, -25), new THREE.Vector3(6, 0, -45)
+        new THREE.Vector3(-10, 0, 15), new THREE.Vector3(10, 0, -5),
+        new THREE.Vector3(-10, 0, -25), new THREE.Vector3(10, 0, -45)
       ];
       streetLampPos.forEach(p => {
         const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 4), poleMat);
@@ -346,6 +347,60 @@
       });
     }
     buildCity();
+
+    // --- ★ マップ中央のゴール（死の市 門）作成 ---
+    const GOAL_POS = new THREE.Vector3(0, 0, -10);
+    const GOAL_RADIUS = 3.0;
+
+    function buildGoalGate() {
+      const group = new THREE.Group();
+      group.position.copy(GOAL_POS);
+
+      // 鳥居風の柱
+      const pillarMat = new THREE.MeshStandardMaterial({ color: 0x880000, roughness: 0.5 });
+      const pillarL = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 6), pillarMat);
+      pillarL.position.set(-2.5, 3, 0);
+      group.add(pillarL);
+
+      const pillarR = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 6), pillarMat);
+      pillarR.position.set(2.5, 3, 0);
+      group.add(pillarR);
+
+      // 梁
+      const beamUpper = new THREE.Mesh(new THREE.BoxGeometry(6.5, 0.4, 0.4), pillarMat);
+      beamUpper.position.set(0, 5.5, 0);
+      group.add(beamUpper);
+
+      // 看板（「死の市」表記）
+      const canvas = document.createElement('canvas');
+      canvas.width = 256; canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#110000'; ctx.fillRect(0, 0, 256, 128);
+      ctx.strokeStyle = '#ff0000'; ctx.lineWidth = 6; ctx.strokeRect(4, 4, 248, 120);
+      ctx.fillStyle = '#ff2222'; ctx.font = 'bold 52px "Courier New", sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('死の市', 128, 64);
+
+      const signTex = new THREE.CanvasTexture(canvas);
+      const signMat = new THREE.MeshBasicMaterial({ map: signTex, transparent: true });
+      const signBoard = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 1.6), signMat);
+      signBoard.position.set(0, 4.2, 0.05);
+      group.add(signBoard);
+
+      // ゴール中央の不気味な光るポータル
+      const portalGeo = new THREE.CylinderGeometry(2.0, 2.0, 0.1, 32);
+      const portalMat = new THREE.MeshBasicMaterial({ color: 0xff1111, transparent: true, opacity: 0.6 });
+      const portal = new THREE.Mesh(portalGeo, portalMat);
+      portal.position.set(0, 0.05, 0);
+      group.add(portal);
+
+      const portalLight = new THREE.PointLight(0xff0000, 3, 12);
+      portalLight.position.set(0, 2, 0);
+      group.add(portalLight);
+
+      scene.add(group);
+    }
+    buildGoalGate();
 
     // --- 鍵モデル ---
     function createKeyMesh() {
@@ -372,7 +427,7 @@
     const keyPositions = [
       new THREE.Vector3(-35, 0.3, -55),
       new THREE.Vector3(35, 0.3, -45),
-      new THREE.Vector3(-6, 0.3, -15),
+      new THREE.Vector3(-30, 0.3, -25),
       new THREE.Vector3(-25, 0.3, 15),
       new THREE.Vector3(25, 0.3, 20)
     ];
@@ -505,6 +560,7 @@
     let keysCount = 0;
     let revealEnemiesTimer = 0;
     let nearbyItemAction = null;
+    let goalMsgCooldown = 0;
 
     let moveF = false, moveB = false, moveL = false, moveR = false;
 
@@ -637,245 +693,4 @@
       document.getElementById('gameover-overlay').style.display = 'none';
       document.getElementById('clear-overlay').style.display = 'none';
       document.getElementById('jumpscare-overlay').style.display = 'none';
-      document.getElementById('title-screen').style.display = 'flex';
-      document.getElementById('ui').style.display = 'none';
-      document.getElementById('minimap-container').style.display = 'none';
-      document.getElementById('crosshair').style.display = 'none';
-      document.getElementById('interact-prompt').style.display = 'none';
-    }
-
-    function triggerJumpscare() {
-      isPlaying = false;
-      document.exitPointerLock();
-      document.getElementById('interact-prompt').style.display = 'none';
-      document.getElementById('jumpscare-overlay').style.display = 'flex';
-      audio.playSE(80, 1.5, 'sawtooth');
-      setTimeout(() => {
-        document.getElementById('jumpscare-overlay').style.display = 'none';
-        document.getElementById('gameover-overlay').style.display = 'flex';
-      }, 1300);
-    }
-
-    function checkWin() {
-      if (player.position.z < -58 && keysCount >= keyPositions.length) {
-        isPlaying = false;
-        document.exitPointerLock();
-        document.getElementById('interact-prompt').style.display = 'none';
-        let rank = 'S';
-        if (playTime > 90) rank = 'A';
-        if (playTime > 150) rank = 'B';
-        document.getElementById('clear-rank').textContent = `RANK: ${rank}`;
-        document.getElementById('clear-time-text').textContent = `TIME: ${document.getElementById('timer-display').textContent}`;
-        document.getElementById('clear-overlay').style.display = 'flex';
-      }
-    }
-
-    let lastTime = performance.now();
-
-    function animate() {
-      requestAnimationFrame(animate);
-      const now = performance.now();
-      const delta = Math.min((now - lastTime) / 1000, 0.1);
-      lastTime = now;
-
-      keys.forEach(k => {
-        if (!k.collected) k.mesh.rotation.y += delta * 2.0;
-      });
-
-      renderer.render(scene, camera);
-
-      if (!isPlaying || isPaused || isChanceTime) return;
-
-      // 懐中電灯とバッテリー（ちらつき演出）
-      if (battery > 0) {
-        battery -= delta * 0.8;
-        let baseIntensity = (battery / 100) * 4.5;
-        if (battery < 20 && Math.random() < 0.15) {
-          flashlight.intensity = baseIntensity * 0.2; // ちらつき
-        } else {
-          flashlight.intensity = baseIntensity;
-        }
-      } else {
-        flashlight.intensity = 0.15;
-      }
-
-      let speed = 4.8;
-      if (isCrouching) speed = 2.2;
-      else if (isSprinting && stamina > 0 && (moveF||moveB||moveL||moveR)) {
-        speed = 8.5; stamina -= delta * 25;
-      } else if (stamina < 100) {
-        stamina += delta * 15;
-      }
-
-      const moveDir = new THREE.Vector3();
-      if (moveF) moveDir.z -= 1; if (moveB) moveDir.z += 1;
-      if (moveL) moveDir.x -= 1; if (moveR) moveDir.x += 1;
-      moveDir.normalize().applyAxisAngle(new THREE.Vector3(0,1,0), player.rotation.y);
-
-      const nextX = player.position.x + moveDir.x * speed * delta;
-      const nextZ = player.position.z + moveDir.z * speed * delta;
-
-      let collide = false;
-      for (let b of buildingColliders) {
-        if (nextX > b.minX && nextX < b.maxX && nextZ > b.minZ && nextZ < b.maxZ) {
-          collide = true; break;
-        }
-      }
-      if (nextX < MAP_LIMIT.minX || nextX > MAP_LIMIT.maxX || nextZ < MAP_LIMIT.minZ || nextZ > MAP_LIMIT.maxZ) {
-        collide = true;
-      }
-
-      if (!collide) {
-        player.position.x = nextX;
-        player.position.z = nextZ;
-      }
-
-      // --- アイテム取得チェック ([E]キーで取得) ---
-      nearbyItemAction = null;
-      let promptText = "";
-
-      keys.forEach(k => {
-        if (!k.collected && player.position.distanceTo(k.pos) < 2.2) {
-          promptText = "[E] 鍵を拾う";
-          nearbyItemAction = () => {
-            k.collected = true; scene.remove(k.mesh); keysCount++;
-            showMsg("黄金の鍵を獲得した！"); audio.playSE(650, 0.3);
-            if (keysCount === 2) triggerChanceTime();
-            updateUI();
-          };
-        }
-      });
-
-      if (!nearbyItemAction) {
-        batteries.forEach(b => {
-          if (!b.collected && player.position.distanceTo(b.pos) < 2.0) {
-            promptText = "[E] 乾電池を拾う";
-            nearbyItemAction = () => {
-              b.collected = true; scene.remove(b.mesh); battery = Math.min(100, battery + 50);
-              showMsg("乾電池を獲得！ライト回復！"); audio.playSE(450, 0.2); updateUI();
-            };
-          }
-        });
-      }
-
-      if (!nearbyItemAction) {
-        firecrackerItems.forEach(fc => {
-          if (!fc.collected && player.position.distanceTo(fc.pos) < 2.0) {
-            promptText = "[E] 爆竹を拾う";
-            nearbyItemAction = () => {
-              fc.collected = true; scene.remove(fc.mesh); firecrackers++;
-              showMsg("爆竹を拾った！ [F]キーで投擲"); audio.playSE(750, 0.2); updateUI();
-            };
-          }
-        });
-      }
-
-      const promptEl = document.getElementById('interact-prompt');
-      if (nearbyItemAction) {
-        promptEl.textContent = promptText;
-        promptEl.style.display = 'block';
-      } else {
-        promptEl.style.display = 'none';
-      }
-
-      if (revealEnemiesTimer > 0) revealEnemiesTimer -= delta;
-
-      // --- モンスターの移動・接触判定（修正済み） ---
-      let minEnemyDist = Infinity;
-
-      monsters.forEach(m => {
-        if (m.isStunned) {
-          m.stunTimer -= delta;
-          if (m.stunTimer <= 0) m.isStunned = false;
-          return;
-        }
-
-        const dist = m.pos.distanceTo(player.position);
-        if (dist < minEnemyDist) minEnemyDist = dist;
-
-        let detectDist = (20 * diffParams.detectMult) * (isCrouching ? 0.35 : 1.0);
-
-        if (dist < detectDist) {
-          // ベクトル計算バグを修正
-          const dir = new THREE.Vector3().subVectors(player.position, m.pos).normalize();
-          const moveStep = dir.clone().multiplyScalar(4.1 * diffParams.speedMult * delta);
-          m.pos.add(moveStep);
-          
-          m.group.rotation.y = Math.atan2(dir.x, dir.z);
-          m.group.position.y = Math.sin(now * 0.005) * 0.2;
-        }
-
-        // 接触したらゲームオーバー
-        if (dist < 1.6) triggerJumpscare();
-      });
-
-      // 距離に応じた心臓音演出
-      if (minEnemyDist < 12) {
-        if (!audio.lastHeartbeat || now - audio.lastHeartbeat > (minEnemyDist * 50 + 200)) {
-          audio.playHeartbeat();
-          audio.lastHeartbeat = now;
-        }
-      }
-
-      checkWin();
-      updateMinimap();
-      updateUI();
-    }
-
-    const miniCanvas = document.getElementById('minimap-canvas');
-    const miniCtx = miniCanvas.getContext('2d');
-
-    function updateMinimap() {
-      miniCtx.clearRect(0, 0, 160, 160);
-      const cx = 80, cy = 80, scale = 1.3;
-
-      miniCtx.fillStyle = '#222530';
-      buildingRenderData.forEach(b => {
-        const dx = (b.x - player.position.x) * scale;
-        const dz = (b.z - player.position.z) * scale;
-        const w = b.w * scale, d = b.d * scale;
-        miniCtx.fillRect(cx + dx - w/2, cy + dz - d/2, w, d);
-      });
-
-      miniCtx.fillStyle = '#ffcc00';
-      keys.forEach(k => {
-        if (!k.collected) {
-          const dx = (k.pos.x - player.position.x) * scale;
-          const dz = (k.pos.z - player.position.z) * scale;
-          if (Math.hypot(dx, dz) < 70) {
-            miniCtx.beginPath(); miniCtx.arc(cx + dx, cy + dz, 3.5, 0, Math.PI*2); miniCtx.fill();
-          }
-        }
-      });
-
-      monsters.forEach(m => {
-        const dx = (m.pos.x - player.position.x) * scale;
-        const dz = (m.pos.z - player.position.z) * scale;
-        const dist = Math.hypot(dx, dz);
-        if (dist < 70 && (dist < 20 || revealEnemiesTimer > 0)) {
-          miniCtx.fillStyle = '#ff0000';
-          miniCtx.beginPath(); miniCtx.arc(cx + dx, cy + dz, 4.5, 0, Math.PI*2); miniCtx.fill();
-        }
-      });
-
-      // プレイヤーの矢印の向き（回転同期を修正）
-      miniCtx.save();
-      miniCtx.translate(cx, cy);
-      miniCtx.rotate(player.rotation.y);
-      miniCtx.fillStyle = '#00ff88';
-      miniCtx.beginPath();
-      miniCtx.moveTo(0, -6); miniCtx.lineTo(4, 5); miniCtx.lineTo(-4, 5);
-      miniCtx.closePath(); miniCtx.fill();
-      miniCtx.restore();
-    }
-
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-
-    animate();
-  </script>
-</body>
-</html>
+      document.getElementById('title
