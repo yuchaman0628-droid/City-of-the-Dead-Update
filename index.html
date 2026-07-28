@@ -129,7 +129,7 @@
 
   <div id="ui">
     <div class="hud-box">
-      <div>『死の市』中央鳥居 [UPDATE v2]</div>
+      <div>『死の市』中央鳥居 [UPDATE v3]</div>
       <div style="margin-top:2px;">鍵: <span id="key-count" style="color:#ffcc00; font-weight:bold;">0 / 5</span></div>
       <div>爆竹 [F]: <span id="firecracker-count" style="color:#ff3333; font-weight:bold;">0</span> 個</div>
       <div>TIME: <span id="timer-display">00:00</span></div>
@@ -165,7 +165,7 @@
 
   <div id="title-screen">
     <div style="font-size:64px; color:#b30000; font-weight:bold; letter-spacing:10px;">死 の 市</div>
-    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- TORII ESCAPE EDITION (REV.2) -</div>
+    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- TORII ESCAPE EDITION (REV.3) -</div>
     
     <div class="diff-selector">
       <button class="diff-btn" onclick="setDifficulty('easy', this)">EASY</button>
@@ -387,12 +387,13 @@
     }
 
     const keys = [];
+    // 建物（xの間隔22, zの間隔18）の間の道路上に配置
     const keyPositions = [
-      new THREE.Vector3(-35, 0.3, -55),
-      new THREE.Vector3(35, 0.3, -45),
-      new THREE.Vector3(-25, 0.3, 30),
-      new THREE.Vector3(25, 0.3, 20),
-      new THREE.Vector3(0, 0.3, -45)
+      new THREE.Vector3(-11, 0.3, -51),
+      new THREE.Vector3(11, 0.3, -51),
+      new THREE.Vector3(-11, 0.3, 9),
+      new THREE.Vector3(11, 0.3, 9),
+      new THREE.Vector3(0, 0.3, -25)
     ];
 
     const batteries = [];
@@ -432,11 +433,12 @@
 
       batteries.forEach(b => scene.remove(b.mesh));
       batteries.length = 0;
+      // 道路上の安全な座標に配置
       const batPositions = [
-        new THREE.Vector3(-6, 0.1, 8),
-        new THREE.Vector3(6, 0.1, -20),
-        new THREE.Vector3(-25, 0.1, -35),
-        new THREE.Vector3(25, 0.1, -10)
+        new THREE.Vector3(-11, 0.1, -9),
+        new THREE.Vector3(11, 0.1, -9),
+        new THREE.Vector3(-11, 0.1, 27),
+        new THREE.Vector3(11, 0.1, 27)
       ];
       batPositions.forEach(pos => {
         const mesh = createBatteryMesh();
@@ -471,11 +473,12 @@
 
       firecrackerItems.forEach(fc => scene.remove(fc.mesh));
       firecrackerItems.length = 0;
+      // 道路上の安全な座標に配置
       const fcPositions = [
-        new THREE.Vector3(0, 0.1, 18),
-        new THREE.Vector3(-35, 0.1, -10),
-        new THREE.Vector3(12, 0.1, -35),
-        new THREE.Vector3(35, 0.1, 10)
+        new THREE.Vector3(0, 0.1, -33),
+        new THREE.Vector3(-11, 0.1, -33),
+        new THREE.Vector3(11, 0.1, -33),
+        new THREE.Vector3(0, 0.1, 9)
       ];
       fcPositions.forEach(pos => {
         const mesh = createFirecrackerMesh();
@@ -808,7 +811,27 @@
 
         if (dist < detectDist) {
           const dir = new THREE.Vector3().subVectors(player.position, m.pos).normalize();
-          m.pos.add(dir.multiplyScalar(4.1 * diffParams.speedMult * delta));
+          const monsterSpeed = 4.1 * diffParams.speedMult;
+          const nextMx = m.pos.x + dir.x * monsterSpeed * delta;
+          const mz = m.pos.z;
+          
+          // X方向の当たり判定チェック
+          let mCollideX = false;
+          for (let b of buildingColliders) {
+            if (nextMx > b.minX && nextMx < b.maxX && mz > b.minZ && mz < b.maxZ) { mCollideX = true; break; }
+          }
+          if (!mCollideX) m.pos.x = nextMx;
+
+          const mx = m.pos.x;
+          const nextMz = m.pos.z + dir.z * monsterSpeed * delta;
+          
+          // Z方向の当たり判定チェック
+          let mCollideZ = false;
+          for (let b of buildingColliders) {
+            if (mx > b.minX && mx < b.maxX && nextMz > b.minZ && nextMz < b.maxZ) { mCollideZ = true; break; }
+          }
+          if (!mCollideZ) m.pos.z = nextMz;
+
           m.group.rotation.y = Math.atan2(dir.x, dir.z);
           m.group.position.y = Math.sin(now * 0.005) * 0.2;
 
@@ -880,3 +903,4 @@
   </script>
 </body>
 </html>
+```[cite: 1]
