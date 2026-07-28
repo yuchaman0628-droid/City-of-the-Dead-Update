@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>死の市 - Torii Escape Edition (Updated)</title>
+  <title>死の市 - Torii Escape Edition (Updated v4)</title>
   <style>
     * { box-sizing: border-box; }
     html, body {
       width: 100%; height: 100%;
       margin: 0; padding: 0;
       overflow: hidden;
-      background-color: #000;
+      background-color: #0b0c10;
       font-family: 'Courier New', Courier, serif, monospace;
       user-select: none;
     }
@@ -129,7 +129,7 @@
 
   <div id="ui">
     <div class="hud-box">
-      <div>『死の市』中央鳥居 [UPDATE v3]</div>
+      <div>『死の市』中央鳥居 [UPDATE v4]</div>
       <div style="margin-top:2px;">鍵: <span id="key-count" style="color:#ffcc00; font-weight:bold;">0 / 5</span></div>
       <div>爆竹 [F]: <span id="firecracker-count" style="color:#ff3333; font-weight:bold;">0</span> 個</div>
       <div>TIME: <span id="timer-display">00:00</span></div>
@@ -165,7 +165,7 @@
 
   <div id="title-screen">
     <div style="font-size:64px; color:#b30000; font-weight:bold; letter-spacing:10px;">死 の 市</div>
-    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- TORII ESCAPE EDITION (REV.3) -</div>
+    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- TORII ESCAPE EDITION (REV.4) -</div>
     
     <div class="diff-selector">
       <button class="diff-btn" onclick="setDifficulty('easy', this)">EASY</button>
@@ -243,11 +243,12 @@
     let playTime = 0;
     let timerInterval = null;
 
-    // --- 3D 空間視界・照明 ---
+    // --- 3D 空間視界・照明・廃墟の都会背景 ---
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x05070c);
-    scene.fog = new THREE.FogExp2(0x05070c, 0.025);
+    // 場外の背景色を廃墟の都会らしい淀んだダークグレー・ブルーに変更
+    scene.background = new THREE.Color(0x0e1116);
+    scene.fog = new THREE.FogExp2(0x0e1116, 0.022);
 
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 150);
     camera.rotation.order = 'YXZ';
@@ -262,10 +263,10 @@
     renderer.setPixelRatio(window.devicePixelRatio);
     container.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0x333b50, 0.9);
+    const ambientLight = new THREE.AmbientLight(0x28303e, 0.9);
     scene.add(ambientLight);
 
-    const moonLight = new THREE.DirectionalLight(0x445577, 0.6);
+    const moonLight = new THREE.DirectionalLight(0x445566, 0.5);
     moonLight.position.set(20, 50, 20);
     scene.add(moonLight);
 
@@ -276,10 +277,10 @@
     flashlight.target.position.set(0, 0, -1);
     camera.add(flashlight.target);
 
-    // 地面
+    // 地面（アスファルト風）
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(200, 200),
-      new THREE.MeshStandardMaterial({ color: 0x15181c, roughness: 0.8 })
+      new THREE.MeshStandardMaterial({ color: 0x111317, roughness: 0.9 })
     );
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
@@ -331,9 +332,9 @@
     const buildingRenderData = [];
 
     function buildCity() {
-      const bldgMat = new THREE.MeshStandardMaterial({ color: 0x1a1c24, roughness: 0.7 });
-      const roofMat = new THREE.MeshStandardMaterial({ color: 0x0f1015, roughness: 0.9 });
-      const windowMat = new THREE.MeshBasicMaterial({ color: 0xffdd88 });
+      const bldgMat = new THREE.MeshStandardMaterial({ color: 0x181a20, roughness: 0.8 });
+      const roofMat = new THREE.MeshStandardMaterial({ color: 0x0c0d12, roughness: 0.95 });
+      const windowMat = new THREE.MeshBasicMaterial({ color: 0x332811 }); // 廃墟のため明かりは消えかけの鈍い色
 
       for (let z = -60; z <= 35; z += 18) {
         for (let x = -40; x <= 40; x += 22) {
@@ -350,7 +351,7 @@
 
           for (let wy = 2; wy < h - 1; wy += 2.5) {
             for (let wx = -w/2 + 2; wx <= w/2 - 2; wx += 3) {
-              if (Math.random() > 0.4) {
+              if (Math.random() > 0.6) {
                 const win = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.4), windowMat);
                 win.position.set(x + wx, wy, z + d/2 + 0.05);
                 scene.add(win);
@@ -362,6 +363,22 @@
           buildingRenderData.push({ x, z, w, d });
         }
       }
+
+      // --- 外周の遠景廃墟ビル（場外の廃墟感を演出） ---
+      const ruinMat = new THREE.MeshStandardMaterial({ color: 0x0f1115, roughness: 0.9 });
+      const outerRuins = [
+        {x: -75, z: -70, w: 25, d: 25, h: 30},
+        {x: 75, z: -70, w: 30, d: 20, h: 35},
+        {x: -75, z: 20, w: 20, d: 30, h: 25},
+        {x: 75, z: 20, w: 25, d: 25, h: 28},
+        {x: 0, z: -80, w: 40, d: 15, h: 32},
+        {x: 0, z: 60, w: 45, d: 20, h: 26}
+      ];
+      outerRuins.forEach(r => {
+        const ruinBldg = new THREE.Mesh(new THREE.BoxGeometry(r.w, r.h, r.d), ruinMat);
+        ruinBldg.position.set(r.x, r.h / 2, r.z);
+        scene.add(ruinBldg);
+      });
     }
     buildCity();
 
@@ -387,13 +404,13 @@
     }
 
     const keys = [];
-    // 建物（xの間隔22, zの間隔18）の間の道路上に配置
+    // 完全に道路上（ビルの干渉を受けない通路の中央）にキー座標を配置
     const keyPositions = [
-      new THREE.Vector3(-11, 0.3, -51),
-      new THREE.Vector3(11, 0.3, -51),
-      new THREE.Vector3(-11, 0.3, 9),
-      new THREE.Vector3(11, 0.3, 9),
-      new THREE.Vector3(0, 0.3, -25)
+      new THREE.Vector3(0, 0.3, -48),
+      new THREE.Vector3(-11, 0.3, -25),
+      new THREE.Vector3(11, 0.3, -25),
+      new THREE.Vector3(-11, 0.3, 2),
+      new THREE.Vector3(11, 0.3, 2)
     ];
 
     const batteries = [];
@@ -433,12 +450,11 @@
 
       batteries.forEach(b => scene.remove(b.mesh));
       batteries.length = 0;
-      // 道路上の安全な座標に配置
       const batPositions = [
-        new THREE.Vector3(-11, 0.1, -9),
-        new THREE.Vector3(11, 0.1, -9),
-        new THREE.Vector3(-11, 0.1, 27),
-        new THREE.Vector3(11, 0.1, 27)
+        new THREE.Vector3(0, 0.1, -12),
+        new THREE.Vector3(-11, 0.1, -12),
+        new THREE.Vector3(11, 0.1, 18),
+        new THREE.Vector3(0, 0.1, 26)
       ];
       batPositions.forEach(pos => {
         const mesh = createBatteryMesh();
@@ -473,12 +489,11 @@
 
       firecrackerItems.forEach(fc => scene.remove(fc.mesh));
       firecrackerItems.length = 0;
-      // 道路上の安全な座標に配置
       const fcPositions = [
-        new THREE.Vector3(0, 0.1, -33),
-        new THREE.Vector3(-11, 0.1, -33),
-        new THREE.Vector3(11, 0.1, -33),
-        new THREE.Vector3(0, 0.1, 9)
+        new THREE.Vector3(0, 0.1, -38),
+        new THREE.Vector3(-11, 0.1, -38),
+        new THREE.Vector3(11, 0.1, -38),
+        new THREE.Vector3(0, 0.1, 12)
       ];
       fcPositions.forEach(pos => {
         const mesh = createFirecrackerMesh();
@@ -815,7 +830,6 @@
           const nextMx = m.pos.x + dir.x * monsterSpeed * delta;
           const mz = m.pos.z;
           
-          // X方向の当たり判定チェック
           let mCollideX = false;
           for (let b of buildingColliders) {
             if (nextMx > b.minX && nextMx < b.maxX && mz > b.minZ && mz < b.maxZ) { mCollideX = true; break; }
@@ -825,7 +839,6 @@
           const mx = m.pos.x;
           const nextMz = m.pos.z + dir.z * monsterSpeed * delta;
           
-          // Z方向の当たり判定チェック
           let mCollideZ = false;
           for (let b of buildingColliders) {
             if (mx > b.minX && mx < b.maxX && nextMz > b.minZ && nextMz < b.maxZ) { mCollideZ = true; break; }
@@ -903,4 +916,3 @@
   </script>
 </body>
 </html>
-```[cite: 1]
