@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>死の市 - Torii Escape Edition (Updated v8)</title>
+  <title>死の市 - Torii Escape Edition (Updated v9)</title>
   <style>
     * { box-sizing: border-box; }
     html, body {
@@ -57,7 +57,7 @@
     }
 
     .bar-bg { width: 140px; height: 6px; background: #222; border: 1px solid #555; margin-top: 4px; }
-    .bar-fill { width: 100%; height: 100%; transition: width 0.1s linear; }
+    .bar-fill { width: 100%; height: 100%; transition: width 0.05s linear; }
     #stamina-bar { background: #00b359; }
     #battery-bar { background: #0088ff; }
 
@@ -137,7 +137,7 @@
 
   <div id="ui">
     <div class="hud-box">
-      <div>『死の市』中央鳥居 [BLOOD MOON v8]</div>
+      <div>『死の市』中央鳥居 [BLOOD MOON v9]</div>
       <div style="margin-top:2px;">鍵: <span id="key-count" style="color:#ffcc00; font-weight:bold;">0 / 5</span></div>
       <div>爆竹 [F]: <span id="firecracker-count" style="color:#ff3333; font-weight:bold;">0</span> 個</div>
       <div>TIME: <span id="timer-display">00:00</span></div>
@@ -203,7 +203,7 @@
     <div style="font-size:11px; color:#777; margin-top:20px; line-height:1.6; text-align:center;">
       [W/A/S/D] 移動 | [Shift] ダッシュ | [Ctrl/C] しゃがみ隠れる<br>
       [E] アイテム取得 | [F] 爆竹使用（怪物麻痺）<br>
-      赤い月の下、金色の『鍵』を5つ集め、**マップ中央の鳥居**へ向かえ！
+      鍵を5つ集めて鳥居に出現する**脱出ゲート**へ急げ！
     </div>
   </div>
 
@@ -451,6 +451,8 @@
     const MAP_LIMIT = { minX: -60, maxX: 60, minZ: -65, maxZ: 45 };
 
     const toriiPosition = new THREE.Vector3(0, 0, -5);
+    let escapeGateMesh = null;
+
     function createTorii() {
       const group = new THREE.Group();
       const woodMat = new THREE.MeshStandardMaterial({ color: 0x881111, roughness: 0.6 });
@@ -467,6 +469,13 @@
       const toriiLight = new THREE.PointLight(0xff3300, 2.0, 10);
       toriiLight.position.set(0, 3, 1);
       group.add(toriiLight);
+
+      // 脱出ゲートエフェクト（最初は非表示）
+      const gateGeo = new THREE.PlaneGeometry(3.6, 4.5);
+      const gateMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, side: THREE.DoubleSide, transparent: true, opacity: 0.0 });
+      escapeGateMesh = new THREE.Mesh(gateGeo, gateMat);
+      escapeGateMesh.position.set(0, 2.3, 0);
+      group.add(escapeGateMesh);
 
       group.position.copy(toriiPosition);
       scene.add(group);
@@ -547,8 +556,8 @@
     const keys = [];
     const batteries = [];
     const firecrackerItems = [];
+    let gateActivated = false;
 
-    // 建物や障害物にめり込まない安全な座標をランダム生成する関数
     function getRandomSafePosition() {
       let pos = new THREE.Vector3();
       let safe = false;
@@ -556,15 +565,13 @@
       
       while (!safe && attempts < 100) {
         attempts++;
-        const rx = (Math.random() - 0.5) * 90; // マップ全体に広く散らばらせる
+        const rx = (Math.random() - 0.5) * 90;
         const rz = (Math.random() - 0.5) * 100;
         
-        // 鳥居の初期位置付近（安全地帯）からは少し離す
         if (Math.abs(rx) < 6 && Math.abs(rz - (-5)) < 6) continue;
 
         let insideBuilding = false;
         for (let b of buildingColliders) {
-          // 建物エリアから一定の余白（マージン 1.5）を持たせて判定
           if (rx > b.minX - 1.5 && rx < b.maxX + 1.5 && rz > b.minZ - 1.5 && rz < b.maxZ + 1.5) {
             insideBuilding = true;
             break;
@@ -582,8 +589,9 @@
     function spawnItems() {
       keys.forEach(k => scene.remove(k.mesh));
       keys.length = 0;
+      gateActivated = false;
+      if (escapeGateMesh) escapeGateMesh.material.opacity = 0.0;
 
-      // 5つの鍵をマップ全体へ大きく散らばらせて配置
       for (let i = 0; i < 5; i++) {
         const pos = getRandomSafePosition();
         const mesh = createKeyMesh();
@@ -875,7 +883,7 @@
 
       const tx = (toriiPosition.x - player.position.x) * scale;
       const tz = (toriiPosition.z - player.position.z) * scale;
-      minimapCtx.fillStyle = '#ff3300';
+      minimapCtx.fillStyle = gateActivated ? '#00ffff' : '#ff3300';
       minimapCtx.beginPath(); minimapCtx.arc(tx, tz, 6, 0, Math.PI * 2); minimapCtx.fill();
 
       keys.forEach(k => {
@@ -914,16 +922,16 @@
           flashlight.intensity = 0.2;
         }
 
-        if (isSprinting && (moveF || moveB || moveL || moveR)) {
-          stamina -= delta * 25;
-          if (stamina <= 0) {
-            stamina = 0;
-            isSprinting = false;
-          }
+        // --- スタミナ減少・回復の修正処理 ---
+        const isMoving = moveF || moveB || moveL || moveR;
+        if (isSprinting && isMoving && stamina > 0) {
+          stamina -= delta * 35; // ダッシュ時にしっかりと減少
+          if (stamina < 0) stamina = 0;
         } else {
-          stamina += delta * 15;
+          stamina += delta * 18; // 静止・通常移動・歩行時は回復
           if (stamina > 100) stamina = 100;
         }
+        updateUI();
 
         let speed = 3.8;
         if (isCrouching) speed = 1.8;
@@ -972,6 +980,14 @@
               updateUI();
               showMsg("『鍵』を手に入れた！");
               audio.playSE(1200, 0.3, 'sine');
+
+              // 5つ集まった瞬間にゲートを発動
+              if (keysCount === 5) {
+                gateActivated = true;
+                showMsg("鳥居に脱出ゲートが出現した！鳥居へ向かえ！");
+                audio.playSE(1500, 0.6, 'triangle');
+              }
+
               if (keysCount === 3 && Math.random() > 0.3) {
                 triggerChanceTime();
               }
@@ -999,7 +1015,7 @@
             foundPrompt = true;
             document.getElementById('interact-prompt').textContent = '[E] 爆竹を拾う';
             nearbyItemAction = () => {
-              fc.collected, fc.collected = true;
+              fc.collected = true;
               scene.remove(fc.mesh);
               firecrackers++;
               updateUI();
@@ -1009,8 +1025,14 @@
           }
         });
 
-        if (keysCount >= 5 && player.position.distanceTo(toriiPosition) < 3.0) {
+        // ゲートが活性化（鍵5つ完了）している状態で鳥居に入るとクリア
+        if (gateActivated && player.position.distanceTo(toriiPosition) < 3.0) {
           triggerClear();
+        }
+
+        // ゲート活性化中は鳥居のゲートが光るアニメーション
+        if (gateActivated && escapeGateMesh) {
+          escapeGateMesh.material.opacity = 0.5 + Math.sin(Date.now() * 0.008) * 0.3;
         }
 
         document.getElementById('interact-prompt').style.display = foundPrompt ? 'block' : 'none';
