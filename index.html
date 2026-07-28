@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>死の市 - Torii Escape Edition (Updated v5)</title>
+  <title>死の市 - Torii Escape Edition (Updated v6)</title>
   <style>
     * { box-sizing: border-box; }
     html, body {
       width: 100%; height: 100%;
       margin: 0; padding: 0;
       overflow: hidden;
-      background-color: #0b0c10;
+      background-color: #050202;
       font-family: 'Courier New', Courier, serif, monospace;
       user-select: none;
     }
@@ -94,7 +94,7 @@
       display: flex; flex-direction: column; justify-content: center; align-items: center; color: #eee;
     }
     #pause-menu { background: rgba(0, 0, 0, 0.9); z-index: 40; display: none; }
-    #title-screen { background: radial-gradient(circle, rgba(35, 2, 2, 0.98) 0%, rgba(0,0,0,1) 100%); z-index: 30; }
+    #title-screen { background: radial-gradient(circle, rgba(40, 2, 2, 0.98) 0%, rgba(0,0,0,1) 100%); z-index: 30; }
     #gameover-overlay { background-color: rgba(30, 0, 0, 0.98); display: none; z-index: 50; }
     #clear-overlay { background-color: rgba(0, 20, 10, 0.95); display: none; z-index: 50; }
 
@@ -129,7 +129,7 @@
 
   <div id="ui">
     <div class="hud-box">
-      <div>『死の市』中央鳥居 [UPDATE v5]</div>
+      <div>『死の市』中央鳥居 [BLOOD MOON v6]</div>
       <div style="margin-top:2px;">鍵: <span id="key-count" style="color:#ffcc00; font-weight:bold;">0 / 5</span></div>
       <div>爆竹 [F]: <span id="firecracker-count" style="color:#ff3333; font-weight:bold;">0</span> 個</div>
       <div>TIME: <span id="timer-display">00:00</span></div>
@@ -165,7 +165,7 @@
 
   <div id="title-screen">
     <div style="font-size:64px; color:#b30000; font-weight:bold; letter-spacing:10px;">死 の 市</div>
-    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- TORII ESCAPE EDITION (REV.5) -</div>
+    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- BLOOD MOON EDITION -</div>
     
     <div class="diff-selector">
       <button class="diff-btn" onclick="setDifficulty('easy', this)">EASY</button>
@@ -177,7 +177,7 @@
     <div style="font-size:11px; color:#777; margin-top:20px; line-height:1.6; text-align:center;">
       [W/A/S/D] 移動 | [Shift] ダッシュ | [Ctrl/C] しゃがみ隠れる<br>
       [E] アイテム取得 | [F] 爆竹使用（怪物麻痺）<br>
-      街のあちこちにある金色の『鍵』を5つ集め、**マップ中央の鳥居**へ向かえ！
+      赤い月の下、金色の『鍵』を5つ集め、**マップ中央の鳥居**へ向かえ！
     </div>
   </div>
 
@@ -189,7 +189,7 @@
 
   <div id="clear-overlay">
     <div style="font-size:54px; color:#00ff88; font-weight:bold;">E S C A P E D</div>
-    <div style="margin:10px 0; color:#eee;">鳥居をくぐり、現世へ生還した！</div>
+    <div style="margin:10px 0; color:#eee;">赤い月の夜、現世へ生還した！</div>
     <div style="font-size:20px; color:#ffcc00;" id="clear-rank">RANK: S</div>
     <div style="font-size:14px; color:#aaa; margin-bottom:20px;" id="clear-time-text">TIME: 00:00</div>
     <button class="btn-action" onclick="returnToTitle()">タイトルへ戻る</button>
@@ -243,11 +243,13 @@
     let playTime = 0;
     let timerInterval = null;
 
-    // --- 3D 空間視界・照明・廃墟の都会背景 ---
+    // --- 3D 空間視界・夜空・赤い月の設定 ---
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0e1116);
-    scene.fog = new THREE.FogExp2(0x0e1116, 0.022);
+    // 夜空の背景色（漆黒に少し青みがかった闇）
+    scene.background = new THREE.Color(0x040608);
+    // 霧も夜の闇に同化させる
+    scene.fog = new THREE.FogExp2(0x040608, 0.020);
 
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 150);
     camera.rotation.order = 'YXZ';
@@ -262,12 +264,26 @@
     renderer.setPixelRatio(window.devicePixelRatio);
     container.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0x28303e, 0.9);
+    // 夜間の環境光（少し青暗い光）
+    const ambientLight = new THREE.AmbientLight(0x111622, 0.6);
     scene.add(ambientLight);
 
-    const moonLight = new THREE.DirectionalLight(0x445566, 0.5);
-    moonLight.position.set(20, 50, 20);
-    scene.add(moonLight);
+    // --- 赤い月（ブラッドムーン）の作成 ---
+    const moonGroup = new THREE.Group();
+    // 月本体（発光する赤色のメッシュ）
+    const moonGeo = new THREE.SphereGeometry(8, 32, 32);
+    const moonMat = new THREE.MeshBasicMaterial({ color: 0xff2222 });
+    const moonMesh = new THREE.Mesh(moonGeo, moonMat);
+    moonGroup.add(moonMesh);
+
+    // 月からの赤い光（周囲を妖しく照らす）
+    const redMoonLight = new THREE.DirectionalLight(0xff3333, 0.6);
+    redMoonLight.position.set(40, 70, -60);
+    scene.add(redMoonLight);
+
+    // 月の配置（空の遠くに固定）
+    moonGroup.position.set(40, 70, -60);
+    scene.add(moonGroup);
 
     // 懐中電灯
     const flashlight = new THREE.SpotLight(0xfff5e0, 4.5, 35, Math.PI / 4, 0.3, 1);
@@ -283,21 +299,18 @@
       canvas.height = 1024;
       const ctx = canvas.getContext('2d');
 
-      // 1. ベースのアスファルト地（ダークグレーの細かいノイズ）
-      ctx.fillStyle = '#1c1f24';
+      ctx.fillStyle = '#181b20';
       ctx.fillRect(0, 0, 1024, 1024);
 
-      // ノイズ（ざらざら感）の追加
       for (let i = 0; i < 40000; i++) {
         const x = Math.random() * 1024;
         const y = Math.random() * 1024;
-        const shade = Math.floor(Math.random() * 40) + 15;
+        const shade = Math.floor(Math.random() * 35) + 12;
         ctx.fillStyle = `rgb(${shade}, ${shade}, ${shade})`;
         ctx.fillRect(x, y, 1.5, 1.5);
       }
 
-      // ひび割れ・汚れの表現
-      ctx.strokeStyle = 'rgba(10, 12, 15, 0.4)';
+      ctx.strokeStyle = 'rgba(8, 10, 12, 0.5)';
       ctx.lineWidth = 2;
       for (let i = 0; i < 15; i++) {
         ctx.beginPath();
@@ -311,32 +324,24 @@
         ctx.stroke();
       }
 
-      // 2. 道路の格子状グリッド（車道と歩道の区画ライン）を描画
-      // 十字路やブロックのラインをシミュレート
-      ctx.strokeStyle = '#2b303b';
+      ctx.strokeStyle = '#252a33';
       ctx.lineWidth = 12;
       ctx.strokeRect(32, 32, 960, 960);
 
-      // センターライン（黄色・点線）
       ctx.strokeStyle = '#d4af37';
       ctx.lineWidth = 8;
       ctx.setLineDash([30, 20]);
-      
-      // 縦方向のセンターライン
       ctx.beginPath(); ctx.moveTo(512, 64); ctx.lineTo(512, 960); ctx.stroke();
-      // 横方向のセンターライン
       ctx.beginPath(); ctx.moveTo(64, 512); ctx.lineTo(960, 512); ctx.stroke();
-
-      ctx.setLineDash([]); // リセット
+      ctx.setLineDash([]);
 
       const texture = new THREE.CanvasTexture(canvas);
       texture.wrapS = THREE.RepeatWrapping;
       texture.wrapT = THREE.RepeatWrapping;
-      texture.repeat.set(8, 8); // 街の広さに合わせてテクスチャをタイル状に繰り返し
+      texture.repeat.set(8, 8);
       return texture;
     }
 
-    // 地面（リアルなアスファルト道路）の作成
     const asphaltTex = createAsphaltTexture();
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(200, 200),
@@ -396,9 +401,9 @@
     const buildingRenderData = [];
 
     function buildCity() {
-      const bldgMat = new THREE.MeshStandardMaterial({ color: 0x181a20, roughness: 0.8 });
-      const roofMat = new THREE.MeshStandardMaterial({ color: 0x0c0d12, roughness: 0.95 });
-      const windowMat = new THREE.MeshBasicMaterial({ color: 0x332811 });
+      const bldgMat = new THREE.MeshStandardMaterial({ color: 0x121418, roughness: 0.8 });
+      const roofMat = new THREE.MeshStandardMaterial({ color: 0x08090c, roughness: 0.95 });
+      const windowMat = new THREE.MeshBasicMaterial({ color: 0x2e2310 });
 
       for (let z = -60; z <= 35; z += 18) {
         for (let x = -40; x <= 40; x += 22) {
@@ -428,8 +433,7 @@
         }
       }
 
-      // --- 外周の遠景廃墟ビル ---
-      const ruinMat = new THREE.MeshStandardMaterial({ color: 0x0f1115, roughness: 0.9 });
+      const ruinMat = new THREE.MeshStandardMaterial({ color: 0x0a0c10, roughness: 0.9 });
       const outerRuins = [
         {x: -75, z: -70, w: 25, d: 25, h: 30},
         {x: 75, z: -70, w: 30, d: 20, h: 35},
@@ -929,7 +933,7 @@
       miniCtx.clearRect(0, 0, 160, 160);
       const cx = 80, cy = 80, scale = 1.3;
 
-      miniCtx.fillStyle = '#222530';
+      miniCtx.fillStyle = '#1c1f28';
       buildingRenderData.forEach(b => {
         const dx = (b.x - player.position.x) * scale;
         const dz = (b.z - player.position.z) * scale;
