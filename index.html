@@ -2,17 +2,16 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>死の市 - Torii Escape Edition (Level 2 Fix)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>死の市 - 朱い鳥居の午前零時 (Mobile Edition)</title>
   <style>
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
     html, body {
       width: 100%; height: 100%;
       margin: 0; padding: 0;
       overflow: hidden;
       background-color: #050202;
       font-family: 'Courier New', Courier, serif, monospace;
-      user-select: none;
     }
 
     #canvas-container { width: 100vw; height: 100vh; display: block; position: absolute; top: 0; left: 0; z-index: 1; }
@@ -32,7 +31,7 @@
       flex-direction: column; z-index: 60;
     }
     .jumpscare-face {
-      font-size: 180px; text-shadow: 0 0 60px #f00, 0 0 120px #ff0000;
+      font-size: 140px; text-shadow: 0 0 60px #f00, 0 0 120px #ff0000;
       animation: scareZoom 0.08s infinite alternate;
     }
     @keyframes scareZoom {
@@ -47,31 +46,57 @@
     }
 
     #ui {
-      position: absolute; top: 20px; left: 20px; color: #ddd;
-      z-index: 20; font-size: 12px; letter-spacing: 2px; display: none; pointer-events: none;
+      position: absolute; top: 10px; left: 10px; color: #ddd;
+      z-index: 20; font-size: 11px; letter-spacing: 1px; display: none; pointer-events: none;
     }
 
     .hud-box {
-      background: rgba(0, 0, 0, 0.85); padding: 10px 14px;
-      border: 1px solid #444; border-left: 4px solid #b30000; margin-bottom: 8px;
+      background: rgba(0, 0, 0, 0.85); padding: 8px 12px;
+      border: 1px solid #444; border-left: 4px solid #b30000; margin-bottom: 6px;
     }
 
-    .bar-bg { width: 140px; height: 6px; background: #222; border: 1px solid #555; margin-top: 4px; }
+    .bar-bg { width: 120px; height: 5px; background: #222; border: 1px solid #555; margin-top: 3px; }
     .bar-fill { width: 100%; height: 100%; transition: width 0.05s linear; }
     #stamina-bar { background: #00b359; }
     #battery-bar { background: #0088ff; }
 
-    #interact-prompt {
-      position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%);
-      color: #ffcc00; font-size: 16px; font-weight: bold; letter-spacing: 2px;
-      background: rgba(0, 0, 0, 0.8); padding: 6px 16px; border: 1px solid #ffcc00;
-      border-radius: 4px; display: none; z-index: 20; pointer-events: none;
+    /* モバイル仮想パッド・ボタン */
+    #touch-controls {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 25; display: none; pointer-events: none;
+    }
+    #virtual-joystick {
+      position: absolute; bottom: 30px; left: 30px; width: 120px; height: 120px;
+      background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); border-radius: 50%;
+      pointer-events: auto; touch-action: none;
+    }
+    #joystick-knob {
+      position: absolute; top: 35px; left: 35px; width: 50px; height: 50px;
+      background: rgba(255,255,255,0.4); border-radius: 50%; pointer-events: none;
+    }
+
+    .touch-btn {
+      position: absolute; background: rgba(0,0,0,0.7); border: 2px solid #888; color: #fff;
+      font-family: inherit; font-weight: bold; border-radius: 50%; display: flex;
+      justify-content: center; align-items: center; pointer-events: auto; touch-action: manipulation;
+    }
+    .touch-btn:active { background: rgba(130,0,0,0.8); border-color: #f00; }
+
+    #btn-interact { bottom: 40px; right: 30px; width: 75px; height: 75px; font-size: 14px; border-color: #ffcc00; color: #ffcc00; display: none; }
+    #btn-firecracker { bottom: 130px; right: 30px; width: 60px; height: 60px; font-size: 12px; border-color: #ff3333; color: #ff3333; }
+    #btn-dash { bottom: 30px; left: 170px; width: 60px; height: 60px; font-size: 11px; }
+    #btn-memo { top: 15px; right: 85px; width: 45px; height: 45px; font-size: 12px; border-radius: 8px; pointer-events: auto; }
+    #btn-pause { top: 15px; right: 20px; width: 45px; height: 45px; font-size: 12px; border-radius: 8px; pointer-events: auto; }
+
+    #look-pad {
+      position: absolute; top: 0; right: 0; width: 60%; height: 100%;
+      z-index: 22; pointer-events: auto; touch-action: none; display: none;
     }
 
     #minimap-container {
-      position: absolute; bottom: 20px; right: 20px; width: 160px; height: 160px;
+      position: absolute; top: 75px; right: 20px; width: 110px; height: 110px;
       background: rgba(5, 5, 10, 0.9); border: 2px solid #666; border-radius: 50%;
-      z-index: 25; display: none; box-shadow: 0 0 20px rgba(0,0,0,0.9); overflow: hidden;
+      z-index: 25; display: none; box-shadow: 0 0 15px rgba(0,0,0,0.9); overflow: hidden; pointer-events: none;
     }
     #minimap-canvas { width: 100%; height: 100%; }
 
@@ -80,20 +105,38 @@
       background: rgba(5, 2, 10, 0.95); display: none; flex-direction: column;
       justify-content: center; align-items: center; z-index: 45; color: #fff;
     }
-    .chance-title { font-size: 36px; color: #ffcc00; letter-spacing: 6px; margin-bottom: 10px; text-shadow: 0 0 20px #ffcc00; }
-    .box-container { display: flex; gap: 20px; }
+    .chance-title { font-size: 28px; color: #ffcc00; letter-spacing: 4px; margin-bottom: 10px; text-shadow: 0 0 20px #ffcc00; text-align: center; }
+    .box-container { display: flex; gap: 15px; }
     .chest-card {
-      width: 120px; height: 160px; background: radial-gradient(circle, #2a2015 0%, #110b05 100%);
+      width: 100px; height: 140px; background: radial-gradient(circle, #2a2015 0%, #110b05 100%);
       border: 2px solid #aa8833; border-radius: 8px; display: flex; flex-direction: column;
-      justify-content: center; align-items: center; cursor: pointer; transition: all 0.3s;
+      justify-content: center; align-items: center; cursor: pointer;
     }
-    .chest-card:hover { transform: translateY(-8px) scale(1.05); border-color: #ffdd66; box-shadow: 0 0 20px #ffcc00; }
+
+    #memo-modal {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.85); display: none; justify-content: center; align-items: center;
+      z-index: 50; color: #eee; padding: 20px;
+    }
+    .memo-content {
+      background: #110808; border: 2px solid #b30000; border-left: 6px solid #ff3333;
+      padding: 20px; width: 100%; max-width: 500px; max-height: 80vh; overflow-y: auto; box-shadow: 0 0 30px rgba(179,0,0,0.5);
+    }
+    .memo-title { font-size: 18px; color: #ffcc00; letter-spacing: 2px; margin-bottom: 12px; border-bottom: 1px solid #444; padding-bottom: 6px; }
+    .memo-body { font-size: 13px; line-height: 1.7; color: #d0d0d0; margin-bottom: 20px; white-space: pre-line; }
+
+    #story-intro-screen {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: #000; display: none; flex-direction: column; justify-content: center; align-items: center;
+      z-index: 35; color: #eee; padding: 0 8%; text-align: center;
+    }
+    .story-text { font-size: 14px; line-height: 2.0; color: #ccc; margin-bottom: 25px; letter-spacing: 1px; min-height: 100px; }
 
     #pause-menu, #title-screen, #options-screen, #gameover-overlay, #clear-overlay, #next-stage-overlay {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      display: flex; flex-direction: column; justify-content: center; align-items: center; color: #eee;
+      display: flex; flex-direction: column; justify-content: center; align-items: center; color: #eee; padding: 20px; text-align: center;
     }
-    #pause-menu { background: rgba(0, 0, 0, 0.9); z-index: 40; display: none; }
+    #pause-menu { background: rgba(0, 0, 0, 0.92); z-index: 40; display: none; }
     #title-screen { background: radial-gradient(circle, rgba(40, 2, 2, 0.98) 0%, rgba(0,0,0,1) 100%); z-index: 30; }
     #options-screen { background: rgba(10, 3, 3, 0.96); z-index: 55; display: none; }
     #gameover-overlay { background-color: rgba(30, 0, 0, 0.98); display: none; z-index: 50; }
@@ -102,25 +145,25 @@
 
     .btn-action {
       background: transparent; border: 1px solid #666; color: #ddd;
-      padding: 12px 36px; font-size: 16px; font-family: inherit; letter-spacing: 3px; cursor: pointer; transition: all 0.3s; margin-top: 15px;
+      padding: 12px 28px; font-size: 15px; font-family: inherit; letter-spacing: 2px; cursor: pointer; margin-top: 12px;
     }
-    .btn-action:hover { background: #800000; color: #fff; border-color: #f00; box-shadow: 0 0 15px #f00; }
+    .btn-action:active { background: #800000; color: #fff; border-color: #f00; }
 
-    .diff-selector { display: flex; gap: 15px; margin: 15px 0; }
-    .diff-btn { background: #222; border: 1px solid #555; color: #aaa; padding: 6px 16px; cursor: pointer; font-size: 12px; }
+    .diff-selector { display: flex; gap: 10px; margin: 12px 0; }
+    .diff-btn { background: #222; border: 1px solid #555; color: #aaa; padding: 6px 14px; font-size: 11px; }
     .diff-btn.active { border-color: #ffcc00; color: #ffcc00; font-weight: bold; background: #332a00; }
 
     .option-group {
-      background: rgba(20, 10, 10, 0.8); border: 1px solid #444; padding: 20px 30px;
-      margin-bottom: 20px; width: 380px; border-left: 4px solid #b30000;
+      background: rgba(20, 10, 10, 0.8); border: 1px solid #444; padding: 15px;
+      margin-bottom: 15px; width: 100%; max-width: 340px; border-left: 4px solid #b30000; text-align: left;
     }
-    .option-row { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; font-size: 14px; }
-    .option-row input[type="range"] { width: 160px; cursor: pointer; accent-color: #b30000; }
+    .option-row { display: flex; justify-content: space-between; align-items: center; margin: 12px 0; font-size: 13px; }
+    .option-row input[type="range"] { width: 130px; accent-color: #b30000; }
 
     #message-log {
-      position: absolute; bottom: 40px; width: 100%; text-align: center;
-      color: #ff3333; font-size: 18px; font-weight: bold; letter-spacing: 2px;
-      z-index: 20; pointer-events: none; opacity: 0; transition: opacity 0.4s;
+      position: absolute; bottom: 120px; width: 100%; text-align: center;
+      color: #ff3333; font-size: 15px; font-weight: bold; letter-spacing: 1px;
+      z-index: 20; pointer-events: none; opacity: 0; transition: opacity 0.4s; padding: 0 10px;
     }
   </style>
   <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
@@ -129,18 +172,29 @@
 
   <div id="vhs-overlay"></div>
   <div id="crosshair"></div>
-  <div id="interact-prompt">[E] アイテムを拾う</div>
+
+  <div id="look-pad"></div>
+
+  <div id="touch-controls">
+    <div id="virtual-joystick"><div id="joystick-knob"></div></div>
+    <button class="touch-btn" id="btn-dash">走る</button>
+    <button class="touch-btn" id="btn-firecracker" onclick="useFirecracker()">爆竹</button>
+    <button class="touch-btn" id="btn-interact" onclick="checkInteraction()">調べる</button>
+    <button class="touch-btn" id="btn-memo" onclick="toggleMemoListModal()">M</button>
+    <button class="touch-btn" id="btn-pause" onclick="openPauseMenu()">||</button>
+  </div>
 
   <div id="jumpscare-overlay">
     <div class="jumpscare-face">💀</div>
-    <div style="color:#ff0000; font-size:24px; font-weight:bold; letter-spacing:6px; margin-top:20px;">捕 獲</div>
+    <div style="color:#ff0000; font-size:22px; font-weight:bold; letter-spacing:4px; margin-top:20px;">捕 獲</div>
   </div>
 
   <div id="ui">
     <div class="hud-box">
-      <div>『死の市』中央鳥居 [<span id="stage-name-hud">Lv.1</span>]</div>
-      <div style="margin-top:2px;">鍵: <span id="key-count" style="color:#ffcc00; font-weight:bold;">0 / 5</span></div>
-      <div>爆竹 [F]: <span id="firecracker-count" style="color:#ff3333; font-weight:bold;">0</span> 個</div>
+      <div>『死の市』 [<span id="stage-name-hud">Lv.1</span>]</div>
+      <div style="margin-top:2px;">認証の鍵: <span id="key-count" style="color:#ffcc00; font-weight:bold;">0 / 5</span></div>
+      <div>記録 [M]: <span id="memo-count" style="color:#00ff88; font-weight:bold;">0 / 4</span></div>
+      <div>爆竹: <span id="firecracker-count" style="color:#ff3333; font-weight:bold;">0</span></div>
       <div>TIME: <span id="timer-display">00:00</span></div>
     </div>
     <div class="hud-box">
@@ -149,31 +203,44 @@
       <div style="margin-top:4px;">BATTERY</div>
       <div class="bar-bg"><div id="battery-bar" class="bar-fill"></div></div>
     </div>
-    <div style="font-size:10px; color:#aaa; margin-top:4px;">[E] 調べる | [F] 爆竹 | [Esc] ポーズ</div>
   </div>
 
-  <div id="minimap-container"><canvas id="minimap-canvas" width="160" height="160"></canvas></div>
+  <div id="minimap-container"><canvas id="minimap-canvas" width="110" height="110"></canvas></div>
+
+  <div id="memo-modal">
+    <div class="memo-content">
+      <div class="memo-title" id="memo-modal-title">調査記録</div>
+      <div class="memo-body" id="memo-modal-body">ここにテキストが入ります。</div>
+      <button class="btn-action" onclick="closeMemoModal()" style="width:100%; margin-top:0;">閉じる</button>
+    </div>
+  </div>
+
+  <div id="story-intro-screen">
+    <div style="font-size:20px; color:#b30000; letter-spacing:2px; margin-bottom:15px;">- 序章：灰塵の谷の記憶 -</div>
+    <div class="story-text" id="story-intro-text"></div>
+    <button class="btn-action" id="story-next-btn" onclick="nextStoryIntro()">次へ</button>
+  </div>
 
   <div id="chance-screen">
-    <div class="chance-title">✨ CHANCE TIME ✨</div>
-    <div style="margin-bottom:20px; color:#aaa;">運命の宝箱を選べ...</div>
+    <div class="chance-title">✨ 調査補給チャンス ✨</div>
+    <div style="margin-bottom:15px; color:#aaa; font-size:13px;">管理棟の備品箱を選べ...</div>
     <div class="box-container">
-      <div class="chest-card" onclick="selectChanceBox(0)"><div style="font-size:40px;">🎁</div><div>壱</div></div>
-      <div class="chest-card" onclick="selectChanceBox(1)"><div style="font-size:40px;">🎁</div><div>弐</div></div>
-      <div class="chest-card" onclick="selectChanceBox(2)"><div style="font-size:40px;">🎁</div><div>参</div></div>
+      <div class="chest-card" onclick="selectChanceBox(0)"><div style="font-size:32px;">🎁</div><div style="font-size:12px;">壱</div></div>
+      <div class="chest-card" onclick="selectChanceBox(1)"><div style="font-size:32px;">🎁</div><div style="font-size:12px;">弐</div></div>
+      <div class="chest-card" onclick="selectChanceBox(2)"><div style="font-size:32px;">🎁</div><div style="font-size:12px;">参</div></div>
     </div>
-    <div id="chance-result" style="margin-top:25px; font-size:18px; color:#00ff88; min-height:25px;"></div>
+    <div id="chance-result" style="margin-top:20px; font-size:16px; color:#00ff88; min-height:25px;"></div>
   </div>
 
   <div id="pause-menu">
-    <div style="font-size:36px; color:#cc0000; margin-bottom:10px;">PAUSED</div>
-    <button class="btn-action" id="resume-btn">再 開</button>
-    <button class="btn-action" onclick="openOptions('pause')">オプション設定</button>
-    <button class="btn-action" onclick="returnToTitle()">タイトルへ戻る</button>
+    <div style="font-size:30px; color:#cc0000; margin-bottom:15px;">PAUSED</div>
+    <button class="btn-action" id="resume-btn" onclick="closePauseMenu()" style="width:220px;">再 開</button>
+    <button class="btn-action" onclick="openOptions('pause')" style="width:220px;">オプション設定</button>
+    <button class="btn-action" onclick="returnToTitle()" style="width:220px;">タイトルへ戻る</button>
   </div>
 
   <div id="options-screen">
-    <div style="font-size:32px; color:#ffcc00; letter-spacing:4px; margin-bottom:20px;">オプション設定</div>
+    <div style="font-size:26px; color:#ffcc00; letter-spacing:2px; margin-bottom:15px;">オプション設定</div>
     <div class="option-group">
       <div class="option-row">
         <span>マスター音量</span>
@@ -181,17 +248,17 @@
       </div>
       <div class="option-row">
         <span>視点感度</span>
-        <input type="range" id="sensitivity-slider" min="0.0005" max="0.005" step="0.0002" value="0.002" oninput="updateSensitivity(this.value)">
+        <input type="range" id="sensitivity-slider" min="0.001" max="0.008" step="0.0005" value="0.0035" oninput="updateSensitivity(this.value)">
       </div>
     </div>
-    <button class="btn-action" onclick="closeOptions()">戻 る</button>
+    <button class="btn-action" onclick="closeOptions()" style="width:220px;">戻 る</button>
   </div>
 
   <div id="message-log"></div>
 
   <div id="title-screen">
-    <div style="font-size:64px; color:#b30000; font-weight:bold; letter-spacing:10px;">死 の 市</div>
-    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- BLOOD MOON EDITION -</div>
+    <div style="font-size:52px; color:#b30000; font-weight:bold; letter-spacing:6px;">死 の 市</div>
+    <div style="font-size:11px; color:#888; letter-spacing:2px; margin-bottom:12px;">- Mobile Edition -</div>
     
     <div class="diff-selector">
       <button class="diff-btn" onclick="setDifficulty('easy', this)">EASY</button>
@@ -199,36 +266,36 @@
       <button class="diff-btn" onclick="setDifficulty('hard', this)">HARD</button>
     </div>
 
-    <button class="btn-action" id="start-btn">街 に 入 る</button>
-    <button class="btn-action" onclick="openOptions('title')">オプション設定</button>
-    <div style="font-size:11px; color:#777; margin-top:20px; line-height:1.6; text-align:center;">
-      [W/A/S/D] 移動 | [Shift] ダッシュ | [E] アイテム取得<br>
-      [F] 爆竹使用（怪物麻痺）<br>
-      ※モンスターに接触すると即ゲームオーバー！
+    <button class="btn-action" id="start-btn" onclick="startStoryIntro()" style="width:260px;">谷 へ 踏 み 入 れ る</button>
+    <button class="btn-action" onclick="openOptions('title')" style="width:260px;">オプション設定</button>
+    <div style="font-size:10px; color:#777; margin-top:15px; line-height:1.5;">
+      [左スティック] 移動 | [画面右側スワイプ] 視点変更<br>
+      [走るボタン] ダッシュ | [調べる] 鍵・記録の回収<br>
+      [爆竹] モンスターの一時麻痺
     </div>
   </div>
 
   <div id="gameover-overlay">
-    <div style="font-size:72px; color:#f00; font-weight:bold;">S L A U G H T E R</div>
-    <div style="color:#ccc; margin-bottom:20px;">あなたの魂は闇に囚われた...</div>
+    <div style="font-size:54px; color:#f00; font-weight:bold;">S L A U G H T E R</div>
+    <div style="color:#ccc; margin-bottom:20px; font-size:14px;">あなたの魂は地底の澱みに呑まれた...</div>
     <button class="btn-action" onclick="returnToTitle()">タイトルへ戻る</button>
   </div>
 
   <div id="next-stage-overlay">
-    <div style="font-size:54px; color:#ffcc00; font-weight:bold;">STAGE 1 CLEAR</div>
-    <div style="margin:15px 0; color:#eee; font-size:20px;">Lv.2 に進みますか？</div>
-    <div style="font-size:13px; color:#ff4444; margin-bottom:25px;">※Lv.2はさらに凶悪な赤き空間・ハードの2倍の難易度になります（スタミナ制限なし）</div>
-    <div style="display: flex; gap: 20px;">
-      <button class="btn-action" onclick="startLevel2()" style="margin-top:0; background:#800000; border-color:#f00;">はい (Lv.2へ)</button>
-      <button class="btn-action" onclick="returnToTitle()" style="margin-top:0;">いいえ (タイトルへ)</button>
+    <div style="font-size:40px; color:#ffcc00; font-weight:bold;" id="next-stage-title">SECURITY UNLOCKED</div>
+    <div style="margin:12px 0; color:#eee; font-size:15px;" id="next-stage-desc">最深部へ進みますか？</div>
+    <div style="font-size:11px; color:#ff4444; margin-bottom:20px;">※最深部はさらに危険な環境澱みが渦巻くエリアです</div>
+    <div style="display: flex; gap: 15px; justify-content: center;">
+      <button class="btn-action" onclick="startLevel2()" style="margin-top:0; background:#800000; border-color:#f00;">はい</button>
+      <button class="btn-action" onclick="returnToTitle()" style="margin-top:0;">いいえ</button>
     </div>
   </div>
 
   <div id="clear-overlay">
-    <div style="font-size:54px; color:#00ff88; font-weight:bold;">E S C A P E D</div>
-    <div style="margin:10px 0; color:#eee;">全ステージを踏破し、現世へ生還した！</div>
-    <div style="font-size:20px; color:#ffcc00;" id="clear-rank">RANK: S</div>
-    <div style="font-size:14px; color:#aaa; margin-bottom:20px;" id="clear-time-text">TIME: 00:00</div>
+    <div style="font-size:44px; color:#00ff88; font-weight:bold;">T R U E  E S C A P E</div>
+    <div style="margin:10px 0; color:#eee; font-size:14px;" id="clear-story-summary">真実を暴き、谷から生還した！</div>
+    <div style="font-size:18px; color:#ffcc00;" id="clear-rank">RANK: S</div>
+    <div style="font-size:13px; color:#aaa; margin-bottom:20px;" id="clear-time-text">TIME: 00:00</div>
     <button class="btn-action" onclick="returnToTitle()">タイトルへ戻る</button>
   </div>
 
@@ -242,7 +309,6 @@
         this.volume = 0.7;
         this.bgmInterval = null;
         this.melodyInterval = null;
-        this.cicadaInterval = null;
         this.isBgmPlaying = false;
         this.isLevel2 = false;
       }
@@ -272,7 +338,6 @@
         const playDrone = () => {
           if (!this.isBgmPlaying || !this.ctx) return;
           const now = this.ctx.currentTime;
-          
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
           const filter = this.ctx.createBiquadFilter();
@@ -302,7 +367,6 @@
         const playScaryMelody = () => {
           if (!this.isBgmPlaying || !this.ctx) return;
           const now = this.ctx.currentTime;
-          
           const notes = this.isLevel2 ? [116.54, 123.47, 138.59, 155.56, 110.00] : [233.08, 220.00, 185.00, 164.81, 155.56]; 
           const freq = notes[Math.floor(Math.random() * notes.length)];
 
@@ -332,52 +396,11 @@
           this.melodyInterval = setTimeout(playScaryMelody, (this.isLevel2 ? 1500 : 2500) + Math.random() * 2000);
         };
         playScaryMelody();
-
-        const playCicada = () => {
-          if (!this.isBgmPlaying || !this.ctx) return;
-          const now = this.ctx.currentTime;
-          const duration = 2.0 + Math.random() * 2.5;
-
-          const bufferSize = this.ctx.sampleRate * duration;
-          const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-          const data = buffer.getChannelData(0);
-          for (let i = 0; i < bufferSize; i++) {
-            data[i] = Math.random() * 2 - 1;
-          }
-
-          const noise = this.ctx.createBufferSource();
-          noise.buffer = buffer;
-
-          const filter = this.ctx.createBiquadFilter();
-          filter.type = 'bandpass';
-          filter.frequency.setValueAtTime(this.isLevel2 ? 4500 : 5800, now);
-          filter.Q.setValueAtTime(20, now);
-
-          const gain = this.ctx.createGain();
-          gain.gain.setValueAtTime(0.001, now);
-          gain.gain.linearRampToValueAtTime(this.isLevel2 ? 0.08 : 0.05, now + 0.3);
-          
-          for (let t = 0.3; t < duration - 0.3; t += 0.06) {
-            gain.gain.setValueAtTime(0.02 + Math.random() * (this.isLevel2 ? 0.08 : 0.05), now + t);
-          }
-          gain.gain.linearRampToValueAtTime(0.001, now + duration);
-
-          noise.connect(filter);
-          filter.connect(gain);
-          gain.connect(this.masterGain);
-
-          noise.start(now);
-          noise.stop(now + duration);
-
-          this.cicadaInterval = setTimeout(playCicada, (duration + 0.8 + Math.random() * 1.5) * 1000);
-        };
-        playCicada();
       }
       stopBGM() {
         this.isBgmPlaying = false;
         if (this.bgmInterval) clearTimeout(this.bgmInterval);
         if (this.melodyInterval) clearTimeout(this.melodyInterval);
-        if (this.cicadaInterval) clearTimeout(this.cicadaInterval);
       }
       playHeartbeat() {
         if (!this.ctx) return;
@@ -393,23 +416,17 @@
       playJumpscareScream() {
         if (!this.ctx) return;
         const now = this.ctx.currentTime;
-
         const bufferSize = this.ctx.sampleRate * 1.2;
         const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
         const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-          data[i] = Math.random() * 2 - 1;
-        }
+        for (let i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; }
 
         const noise = this.ctx.createBufferSource();
         noise.buffer = buffer;
-
         const filter = this.ctx.createBiquadFilter();
         filter.type = 'bandpass';
         filter.frequency.setValueAtTime(1200, now);
         filter.frequency.exponentialRampToValueAtTime(3200, now + 0.4);
-        filter.frequency.exponentialRampToValueAtTime(800, now + 1.2);
-        filter.Q.setValueAtTime(12, now);
 
         const gainNode = this.ctx.createGain();
         gainNode.gain.setValueAtTime(0.01, now);
@@ -419,51 +436,695 @@
         noise.connect(filter);
         filter.connect(gainNode);
         gainNode.connect(this.masterGain);
-
         noise.start(now);
         noise.stop(now + 1.25);
-
-        const subOsc = this.ctx.createOscillator();
-        const subGain = this.ctx.createGain();
-        subOsc.type = 'sawtooth';
-        subOsc.frequency.setValueAtTime(140, now);
-        subOsc.frequency.exponentialRampToValueAtTime(20, now + 0.8);
-        
-        subGain.gain.setValueAtTime(0.85, now);
-        subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
-
-        subOsc.connect(subGain);
-        subGain.connect(this.masterGain);
-        subOsc.start(now);
-        subOsc.stop(now + 0.85);
       }
       playClearFanfare() {
         if (!this.ctx) return;
         const now = this.ctx.currentTime;
-        
         const notes = [
-          { f: 523.25, t: 0.0, d: 0.4 },
-          { f: 659.25, t: 0.2, d: 0.4 },
-          { f: 783.99, t: 0.4, d: 0.4 },
-          { f: 1046.50, t: 0.6, d: 1.2 },
-          { f: 1318.51, t: 1.0, d: 1.5 },
+          { f: 523.25, t: 0.0, d: 0.4 }, { f: 659.25, t: 0.2, d: 0.4 },
+          { f: 783.99, t: 0.4, d: 0.4 }, { f: 1046.50, t: 0.6, d: 1.2 }
         ];
-
         notes.forEach(n => {
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
-          const filter = this.ctx.createBiquadFilter();
-
           osc.type = 'triangle';
           osc.frequency.setValueAtTime(n.f, now + n.t);
-
-          filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(2500, now + n.t);
-
           gain.gain.setValueAtTime(0.001, now + n.t);
           gain.gain.linearRampToValueAtTime(0.25, now + n.t + 0.05);
           gain.gain.exponentialRampToValueAtTime(0.001, now + n.t + n.d);
+          osc.connect(gain); gain.connect(this.masterGain);
+          osc.start(now + n.t); osc.stop(now + n.t + n.d + 0.1);
+        });
+      }
+      playSE(freq, duration, type='sine') {
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type; osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(0.35, now); gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+        osc.connect(gain); gain.connect(this.masterGain);
+        osc.start(now); osc.stop(now + duration);
+      }
+    }
+    const audio = new HorrorAudio();
 
-          osc.connect(filter);
-          filter.connect(gain);
-          gain.connect
+    let lookSensitivity = 0.0035;
+    let previousMenuState = 'title';
+
+    function updateVolume(val) { audio.setVolume(val); }
+    function updateSensitivity(val) { lookSensitivity = parseFloat(val); }
+
+    function openOptions(from) {
+      previousMenuState = from;
+      if (from === 'title') document.getElementById('title-screen').style.display = 'none';
+      else if (from === 'pause') document.getElementById('pause-menu').style.display = 'none';
+      document.getElementById('options-screen').style.display = 'flex';
+    }
+
+    function closeOptions() {
+      document.getElementById('options-screen').style.display = 'none';
+      if (previousMenuState === 'title') document.getElementById('title-screen').style.display = 'flex';
+      else if (previousMenuState === 'pause') document.getElementById('pause-menu').style.display = 'flex';
+    }
+
+    let difficulty = 'normal';
+    let diffParams = { speedMult: 1.0, detectMult: 1.0 };
+    let currentLevel = 1;
+
+    function setDifficulty(diff, btn) {
+      difficulty = diff;
+      document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (diff === 'easy') diffParams = { speedMult: 0.75, detectMult: 0.7 };
+      if (diff === 'normal') diffParams = { speedMult: 1.0, detectMult: 1.0 };
+      if (diff === 'hard') diffParams = { speedMult: 1.35, detectMult: 1.4 };
+    }
+
+    let playTime = 0;
+    let timerInterval = null;
+
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x040608);
+    scene.fog = new THREE.FogExp2(0x040608, 0.020);
+
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 150);
+    camera.rotation.order = 'YXZ';
+
+    const player = new THREE.Object3D();
+    player.position.set(0, 1.6, 1);
+    player.add(camera);
+    scene.add(player);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer.domElement);
+
+    const ambientLight = new THREE.AmbientLight(0x111622, 0.6);
+    scene.add(ambientLight);
+
+    const redMoonLight = new THREE.DirectionalLight(0xff3333, 0.6);
+    redMoonLight.position.set(40, 70, -60);
+    scene.add(redMoonLight);
+
+    const flashlight = new THREE.SpotLight(0xfff5e0, 4.5, 35, Math.PI / 4, 0.3, 1);
+    camera.add(flashlight);
+    flashlight.position.set(0, 0, 0);
+    flashlight.target.position.set(0, 0, -1);
+    camera.add(flashlight.target);
+
+    function createAsphaltTexture(isRed = false) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512; canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = isRed ? '#2b0a0a' : '#181b20';
+      ctx.fillRect(0, 0, 512, 512);
+      for (let i = 0; i < 15000; i++) {
+        const x = Math.random() * 512, y = Math.random() * 512;
+        const shade = Math.floor(Math.random() * 35) + 12;
+        ctx.fillStyle = isRed ? `rgb(${shade + 40}, ${shade}, ${shade})` : `rgb(${shade}, ${shade}, ${shade})`;
+        ctx.fillRect(x, y, 1.5, 1.5);
+      }
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(8, 8);
+      return texture;
+    }
+
+    const asphaltTex = createAsphaltTexture(false);
+    const redAsphaltTex = createAsphaltTexture(true);
+
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(200, 200),
+      new THREE.MeshStandardMaterial({ map: asphaltTex, roughness: 0.85, metalness: 0.05 })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    scene.add(floor);
+
+    const MAP_LIMIT = { minX: -60, maxX: 60, minZ: -65, maxZ: 45 };
+    const toriiPosition = new THREE.Vector3(0, 0, -5);
+    let escapeGateMesh = null;
+    let toriiGroup = null;
+
+    function createTorii() {
+      if (toriiGroup) scene.remove(toriiGroup);
+      toriiGroup = new THREE.Group();
+      const woodMat = new THREE.MeshStandardMaterial({ color: currentLevel === 2 ? 0xcc0000 : 0x881111, roughness: 0.6 });
+      const blackMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
+
+      const pillarGeo = new THREE.CylinderGeometry(0.3, 0.35, 5, 12);
+      const pillarL = new THREE.Mesh(pillarGeo, woodMat); pillarL.position.set(-2, 2.5, 0); toriiGroup.add(pillarL);
+      const pillarR = new THREE.Mesh(pillarGeo, woodMat); pillarR.position.set(2, 2.5, 0); toriiGroup.add(pillarR);
+
+      const kasagi = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.4, 0.6), woodMat); kasagi.position.set(0, 4.8, 0); toriiGroup.add(kasagi);
+      const shimagi = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.3, 0.5), blackMat); shimagi.position.set(0, 4.3, 0); toriiGroup.add(shimagi);
+      const nuki = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.25, 0.4), woodMat); nuki.position.set(0, 3.2, 0); toriiGroup.add(nuki);
+
+      const toriiLight = new THREE.PointLight(currentLevel === 2 ? 0xff0000 : 0xff3300, 2.0, 10);
+      toriiLight.position.set(0, 3, 1);
+      toriiGroup.add(toriiLight);
+
+      const gateGeo = new THREE.PlaneGeometry(3.6, 4.5);
+      const gateMat = new THREE.MeshBasicMaterial({ color: currentLevel === 2 ? 0xff0055 : 0x00ffff, side: THREE.DoubleSide, transparent: true, opacity: 0.0 });
+      escapeGateMesh = new THREE.Mesh(gateGeo, gateMat);
+      escapeGateMesh.position.set(0, 2.3, 0);
+      toriiGroup.add(escapeGateMesh);
+
+      toriiGroup.position.copy(toriiPosition);
+      scene.add(toriiGroup);
+    }
+    createTorii();
+
+    const buildingColliders = [];
+    const buildingMeshes = [];
+
+    function buildCity() {
+      buildingMeshes.forEach(m => scene.remove(m));
+      buildingMeshes.length = 0;
+      buildingColliders.length = 0;
+
+      const isLv2 = (currentLevel === 2);
+      const bldgMat = new THREE.MeshStandardMaterial({ color: isLv2 ? 0x220505 : 0x121418, roughness: 0.8 });
+      const roofMat = new THREE.MeshStandardMaterial({ color: isLv2 ? 0x0d0202 : 0x08090c, roughness: 0.95 });
+
+      for (let z = -60; z <= 35; z += 18) {
+        for (let x = -40; x <= 40; x += 22) {
+          if (Math.abs(x) < 8 && Math.abs(z) < 12) continue;
+
+          const w = 12, d = 12, h = 8 + Math.random() * 6;
+          const bldg = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bldgMat);
+          bldg.position.set(x, h/2, z);
+          scene.add(bldg);
+          buildingMeshes.push(bldg);
+
+          const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 0.6, 0.4, d + 0.6), roofMat);
+          roof.position.set(x, h + 0.2, z);
+          scene.add(roof);
+          buildingMeshes.push(roof);
+
+          buildingColliders.push({ minX: x - w/2 - 0.6, maxX: x + w/2 + 0.6, minZ: z - d/2 - 0.6, maxZ: z + d/2 + 0.6 });
+        }
+      }
+    }
+    buildCity();
+
+    function createKeyMesh() {
+      const group = new THREE.Group();
+      const goldMat = new THREE.MeshStandardMaterial({ color: currentLevel === 2 ? 0xff3333 : 0xffcc00, metalness: 0.8, roughness: 0.2 });
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.05, 8, 16), goldMat);
+      ring.position.y = 0.35; group.add(ring);
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.5), goldMat);
+      shaft.position.y = 0.1; group.add(shaft);
+      const bit = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.15, 0.04), goldMat);
+      bit.position.set(0.06, -0.05, 0); group.add(bit);
+      group.rotation.x = Math.PI / 4;
+      return group;
+    }
+
+    function createMemoMesh() {
+      const group = new THREE.Group();
+      const paperMat = new THREE.MeshStandardMaterial({ color: 0xddccaa, roughness: 0.8 });
+      const paper = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.02, 0.45), paperMat);
+      group.add(paper);
+      return group;
+    }
+
+    const keys = [];
+    const memoItems = [];
+    let collectedMemosCount = 0;
+    const batteries = [];
+    const firecrackerItems = [];
+    let gateActivated = false;
+
+    const storyMemosData = [
+      {
+        title: "調査記録 壱：灰塵の谷の由来",
+        text: "かつてこの地は地下鉱物資源で栄えた「灰塵の谷」だったが、禁忌の深部採掘により地底の澱みが解放され、モンスターがあふれ出した。"
+      },
+      {
+        title: "調査記録 弐：変貌した死の市",
+        text: "都市は廃墟となり「死の市」と呼ばれるようになった。中枢制御システムは今もなお深部で稼働し続けている。"
+      },
+      {
+        title: "調査記録 参：親友の手記",
+        text: "「谷の底にあるエネルギー源を使えば危機を解決できる」\nそう確信した私は、たった一人で死の市へと足を踏み入れた。"
+      },
+      {
+        title: "調査記録 肆：防衛記録と爆竹の弱点",
+        text: "モンスターの敏感な感覚器官に対し、「爆竹」の持つ特殊な火薬の炸裂音と閃光は一時的に行動をフリーズさせる最大の弱点となる。"
+      }
+    ];
+
+    function getRandomSafePosition() {
+      let pos = new THREE.Vector3();
+      let safe = false;
+      let attempts = 0;
+      while (!safe && attempts < 200) {
+        attempts++;
+        const rx = (Math.random() - 0.5) * 76;
+        const rz = (Math.random() - 0.5) * 85 - 12;
+        if (Math.abs(rx) < 6 && Math.abs(rz - (-5)) < 6) continue;
+        let inside = false;
+        for (let b of buildingColliders) {
+          if (rx > b.minX - 1.5 && rx < b.maxX + 1.5 && rz > b.minZ - 1.5 && rz < b.maxZ + 1.5) {
+            inside = true; break;
+          }
+        }
+        if (!inside) { pos.set(rx, 0.3, rz); safe = true; }
+      }
+      return safe ? pos : new THREE.Vector3(12, 0.3, 10);
+    }
+
+    function spawnItems() {
+      keys.forEach(k => scene.remove(k.mesh)); keys.length = 0;
+      memoItems.forEach(m => scene.remove(m.mesh)); memoItems.length = 0;
+      collectedMemosCount = 0;
+      document.getElementById('memo-count').innerText = `0 / ${storyMemosData.length}`;
+      batteries.forEach(b => scene.remove(b.mesh)); batteries.length = 0;
+      firecrackerItems.forEach(f => scene.remove(f.mesh)); firecrackerItems.length = 0;
+
+      for (let i = 0; i < 5; i++) {
+        const mesh = createKeyMesh(); mesh.position.copy(getRandomSafePosition());
+        scene.add(mesh); keys.push({ mesh, collected: false });
+      }
+      for (let i = 0; i < storyMemosData.length; i++) {
+        const mesh = createMemoMesh(); mesh.position.copy(getRandomSafePosition());
+        scene.add(mesh); memoItems.push({ mesh, collected: false, index: i });
+      }
+      for (let i = 0; i < 4; i++) {
+        const bGroup = new THREE.Group();
+        bGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.4, 0.2), new THREE.MeshStandardMaterial({ color: 0x0088ff, metalness: 0.8 })));
+        bGroup.position.copy(getRandomSafePosition());
+        scene.add(bGroup); batteries.push({ mesh: bGroup, collected: false });
+      }
+      for (let i = 0; i < 3; i++) {
+        const fGroup = new THREE.Group();
+        fGroup.add(new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.4, 12), new THREE.MeshStandardMaterial({ color: 0xcc2222 })));
+        fGroup.position.copy(getRandomSafePosition());
+        scene.add(fGroup); firecrackerItems.push({ mesh: fGroup, collected: false });
+      }
+      gateActivated = false;
+      escapeGateMesh.material.opacity = 0.0;
+      updateHUD();
+    }
+
+    class Monster {
+      constructor() {
+        this.mesh = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 2.2, 8), mat);
+        body.position.y = 1.1; this.mesh.add(body);
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 12, 12), mat);
+        head.position.y = 2.4; this.mesh.add(head);
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.08), eyeMat); eyeL.position.set(0.18, 2.45, -0.35); this.mesh.add(eyeL);
+        const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.08), eyeMat); eyeR.position.set(-0.18, 2.45, -0.35); this.mesh.add(eyeR);
+
+        this.mesh.position.set(20, 0, -35);
+        scene.add(this.mesh);
+        this.speed = 0.042;
+        this.stunTimer = 0;
+        this.isChasing = false;
+      }
+      reset(x, z) { this.mesh.position.set(x, 0, z); this.stunTimer = 0; this.isChasing = false; }
+      update(delta) {
+        if (this.stunTimer > 0) { this.stunTimer -= delta; this.mesh.rotation.y += 0.1; return; }
+        const pPos = player.position;
+        const mPos = this.mesh.position;
+        const dist = mPos.distanceTo(pPos);
+
+        if (dist < 14) this.isChasing = true;
+        if (this.isChasing) {
+          const targetAngle = Math.atan2(pPos.x - mPos.x, pPos.z - mPos.z);
+          this.mesh.rotation.y = targetAngle;
+          let curSpeed = this.speed * diffParams.speedMult * (currentLevel === 2 ? 1.25 : 1.0);
+          mPos.x += Math.sin(targetAngle) * curSpeed;
+          mPos.z += Math.cos(targetAngle) * curSpeed;
+          if (dist < 2.0) triggerJumpscare();
+        } else {
+          this.mesh.rotation.y += 0.01;
+        }
+      }
+      stun() {
+        this.stunTimer = 6.0;
+        audio.playSE(220, 0.8, 'sawtooth');
+        showGameMessage("モンスターは爆竹で一時麻痺した！");
+      }
+    }
+
+    const monsters = [new Monster()];
+
+    let keysCollected = 0;
+    let stamina = 100;
+    let battery = 100;
+    let firecrackers = 1;
+    let flashlightOn = true;
+    let gameActive = false;
+    let isPaused = false;
+
+    // タッチ仮想スティック & 視点操作の状態管理
+    let joystickData = { active: false, x: 0, y: 0 };
+    let isDashing = false;
+
+    const stick = document.getElementById('virtual-joystick');
+    const knob = document.getElementById('joystick-knob');
+    const stickCenter = { x: 0, y: 0 };
+
+    stick.addEventListener('touchstart', (e) => {
+      const touch = e.targetTouches[0];
+      const rect = stick.getBoundingClientRect();
+      stickCenter.x = rect.left + rect.width / 2;
+      stickCenter.y = rect.top + rect.height / 2;
+      joystickData.active = true;
+      updateJoystick(touch.clientX, touch.clientY);
+    });
+
+    stick.addEventListener('touchmove', (e) => {
+      if (!joystickData.active) return;
+      const touch = e.targetTouches[0];
+      updateJoystick(touch.clientX, touch.clientY);
+    });
+
+    function endJoystick() {
+      joystickData.active = false;
+      joystickData.x = 0;
+      joystickData.y = 0;
+      knob.style.transform = `translate(0px, 0px)`;
+    }
+    stick.addEventListener('touchend', endJoystick);
+    stick.addEventListener('touchcancel', endJoystick);
+
+    function updateJoystick(clientX, clientY) {
+      const maxDist = 35;
+      let dx = clientX - stickCenter.x;
+      let dy = clientY - stickCenter.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > maxDist) {
+        dx = (dx / dist) * maxDist;
+        dy = (dy / dist) * maxDist;
+      }
+      knob.style.transform = `translate(${dx}px, ${dy}px)`;
+      joystickData.x = dx / maxDist;
+      joystickData.y = dy / maxDist;
+    }
+
+    // ダッシュボタンのタッチ対応
+    const dashBtn = document.getElementById('btn-dash');
+    dashBtn.addEventListener('touchstart', () => { isDashing = true; dashBtn.style.background = '#800000'; });
+    dashBtn.addEventListener('touchend', () => { isDashing = false; dashBtn.style.background = 'rgba(0,0,0,0.7)'; });
+
+    // 視点操作（画面右側スワイプ）
+    const lookPad = document.getElementById('look-pad');
+    let lastTouchX = 0, lastTouchY = 0;
+    lookPad.addEventListener('touchstart', (e) => {
+      const t = e.targetTouches[0];
+      lastTouchX = t.clientX; lastTouchY = t.clientY;
+    });
+    lookPad.addEventListener('touchmove', (e) => {
+      if (!gameActive || isPaused) return;
+      const t = e.targetTouches[0];
+      const deltaX = t.clientX - lastTouchX;
+      const deltaY = t.clientY - lastTouchY;
+      lastTouchX = t.clientX; lastTouchY = t.clientY;
+
+      player.rotation.y -= deltaX * lookSensitivity;
+      camera.rotation.x -= deltaY * lookSensitivity;
+      camera.rotation.x = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, camera.rotation.x));
+    });
+
+    function openPauseMenu() {
+      isPaused = true;
+      document.getElementById('pause-menu').style.display = 'flex';
+    }
+
+    function closePauseMenu() {
+      isPaused = false;
+      document.getElementById('pause-menu').style.display = 'none';
+    }
+
+    function returnToTitle() {
+      gameActive = false; isPaused = false;
+      audio.stopBGM();
+      if (timerInterval) clearInterval(timerInterval);
+      document.getElementById('pause-menu').style.display = 'none';
+      document.getElementById('options-screen').style.display = 'none';
+      document.getElementById('gameover-overlay').style.display = 'none';
+      document.getElementById('clear-overlay').style.display = 'none';
+      document.getElementById('next-stage-overlay').style.display = 'none';
+      document.getElementById('ui').style.display = 'none';
+      document.getElementById('minimap-container').style.display = 'none';
+      document.getElementById('touch-controls').style.display = 'none';
+      document.getElementById('look-pad').style.display = 'none';
+      document.getElementById('title-screen').style.display = 'flex';
+    }
+
+    let storyIntroIndex = 0;
+    const storyIntroTexts = [
+      "かつて地下鉱物資源で栄えた「灰塵の谷」。だが、禁忌の深部採掘によって地底の澱みが解放され、街は一瞬で「死の市」へと変貌した。",
+      "数日前、世界を救う手掛かりを求め、親友がたった一人でこの死の市へ足を踏み入れたまま戻らなくなった。",
+      "あなたは親友の足跡を追い、懐中電灯を片手に死の市の中枢へと足を踏み入れる……。"
+    ];
+
+    function startStoryIntro() {
+      document.getElementById('title-screen').style.display = 'none';
+      document.getElementById('story-intro-screen').style.display = 'flex';
+      storyIntroIndex = 0;
+      document.getElementById('story-intro-text').innerText = storyIntroTexts[storyIntroIndex];
+    }
+
+    function nextStoryIntro() {
+      storyIntroIndex++;
+      if (storyIntroIndex < storyIntroTexts.length) {
+        document.getElementById('story-intro-text').innerText = storyIntroTexts[storyIntroIndex];
+      } else {
+        document.getElementById('story-intro-screen').style.display = 'none';
+        startGame();
+      }
+    }
+
+    function startGame() {
+      audio.startBGM(currentLevel === 2);
+      gameActive = true; isPaused = false;
+      keysCollected = 0; battery = 100; stamina = 100; firecrackers = currentLevel === 2 ? 2 : 1; playTime = 0;
+
+      player.position.set(0, 1.6, 2);
+      player.rotation.set(0, 0, 0); camera.rotation.set(0, 0, 0);
+
+      if (currentLevel === 2) {
+        floor.material.map = redAsphaltTex; floor.material.needsUpdate = true;
+        document.getElementById('stage-name-hud').innerText = 'Lv.2 最深部';
+      } else {
+        floor.material.map = asphaltTex; floor.material.needsUpdate = true;
+        document.getElementById('stage-name-hud').innerText = 'Lv.1 管理棟';
+      }
+
+      buildCity(); createTorii(); spawnItems();
+      monsters.forEach(m => m.reset((Math.random() - 0.5) * 50, -45));
+
+      document.getElementById('ui').style.display = 'block';
+      document.getElementById('minimap-container').style.display = 'block';
+      document.getElementById('touch-controls').style.display = 'block';
+      document.getElementById('look-pad').style.display = 'block';
+
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        if (gameActive && !isPaused) {
+          playTime++;
+          const min = String(Math.floor(playTime / 60)).padStart(2, '0');
+          const sec = String(playTime % 60).padStart(2, '0');
+          document.getElementById('timer-display').innerText = `${min}:${sec}`;
+        }
+      }, 1000);
+    }
+
+    function showGameMessage(text) {
+      const msg = document.getElementById('message-log');
+      msg.innerText = text; msg.style.opacity = 1;
+      setTimeout(() => { msg.style.opacity = 0; }, 2500);
+    }
+
+    function useFirecracker() {
+      if (firecrackers <= 0) { showGameMessage("爆竹の持ち合わせがない！"); return; }
+      firecrackers--;
+      audio.playSE(100, 0.4, 'square');
+      showGameMessage("爆竹を投げた！モンスターが麻痺した！");
+      monsters.forEach(m => {
+        if (m.mesh.position.distanceTo(player.position) < 22) m.stun();
+      });
+      updateHUD();
+    }
+
+    function checkInteraction() {
+      const pPos = player.position;
+      for (let k of keys) {
+        if (!k.collected && k.mesh.position.distanceTo(pPos) < 2.5) {
+          k.collected = true; scene.remove(k.mesh); keysCollected++;
+          audio.playSE(600, 0.2); showGameMessage(`認証の鍵を取得 (${keysCollected}/5)`);
+          updateHUD();
+          if (keysCollected >= 5 && !gateActivated) {
+            gateActivated = true; escapeGateMesh.material.opacity = 0.75;
+            audio.playSE(880, 0.6); showGameMessage("朱い鳥居の中枢セキュリティが全解除された！");
+          }
+          return;
+        }
+      }
+      for (let mItem of memoItems) {
+        if (!mItem.collected && mItem.mesh.position.distanceTo(pPos) < 2.5) {
+          mItem.collected = true; scene.remove(mItem.mesh); collectedMemosCount++;
+          audio.playSE(750, 0.2); openMemoModal(mItem.index); updateHUD(); return;
+        }
+      }
+      for (let b of batteries) {
+        if (!b.collected && b.mesh.position.distanceTo(pPos) < 2.5) {
+          b.collected = true; scene.remove(b.mesh); battery = Math.min(100, battery + 35);
+          audio.playSE(900, 0.2); showGameMessage("バッテリー回復 (+35%)"); updateHUD(); return;
+        }
+      }
+      for (let f of firecrackerItems) {
+        if (!f.collected && f.mesh.position.distanceTo(pPos) < 2.5) {
+          f.collected = true; scene.remove(f.mesh); firecrackers++;
+          audio.playSE(500, 0.2); showGameMessage("爆竹を入手 (+1)"); updateHUD(); return;
+        }
+      }
+      if (gateActivated && toriiPosition.distanceTo(pPos) < 3.5) {
+        triggerStageClear();
+      }
+    }
+
+    let activeMemoIndex = 0;
+    function openMemoModal(index) {
+      activeMemoIndex = index; isPaused = true;
+      document.getElementById('memo-modal-title').innerText = storyMemosData[index].title;
+      document.getElementById('memo-modal-body').innerText = storyMemosData[index].text;
+      document.getElementById('memo-modal').style.display = 'flex';
+    }
+
+    function closeMemoModal() {
+      document.getElementById('memo-modal').style.display = 'none'; isPaused = false;
+    }
+
+    function toggleMemoListModal() {
+      if (!gameActive) return;
+      if (document.getElementById('memo-modal').style.display === 'flex') closeMemoModal();
+      else if (collectedMemosCount > 0) openMemoModal(activeMemoIndex);
+      else showGameMessage("調査記録がまだ見つかっていません");
+    }
+
+    function updateHUD() {
+      document.getElementById('key-count').innerText = `${keysCollected} / 5`;
+      document.getElementById('memo-count').innerText = `${collectedMemosCount} / ${storyMemosData.length}`;
+      document.getElementById('firecracker-count').innerText = firecrackers;
+      document.getElementById('stamina-bar').style.width = `${stamina}%`;
+      document.getElementById('battery-bar').style.width = `${battery}%`;
+
+      let near = false; const pPos = player.position;
+      for (let k of keys) if (!k.collected && k.mesh.position.distanceTo(pPos) < 2.5) near = true;
+      for (let m of memoItems) if (!m.collected && m.mesh.position.distanceTo(pPos) < 2.5) near = true;
+      for (let b of batteries) if (!b.collected && b.mesh.position.distanceTo(pPos) < 2.5) near = true;
+      for (let f of firecrackerItems) if (!f.collected && f.mesh.position.distanceTo(pPos) < 2.5) near = true;
+      if (gateActivated && toriiPosition.distanceTo(pPos) < 3.5) near = true;
+      document.getElementById('btn-interact').style.display = near ? 'flex' : 'none';
+    }
+
+    function triggerJumpscare() {
+      gameActive = false; audio.stopBGM(); audio.playJumpscareScream();
+      document.getElementById('jumpscare-overlay').style.display = 'flex';
+      setTimeout(() => {
+        document.getElementById('jumpscare-overlay').style.display = 'none';
+        document.getElementById('gameover-overlay').style.display = 'flex';
+      }, 1500);
+    }
+
+    function triggerStageClear() {
+      gameActive = false; audio.stopBGM(); audio.playClearFanfare();
+      if (currentLevel === 1) {
+        document.getElementById('next-stage-overlay').style.display = 'flex';
+      } else {
+        document.getElementById('clear-story-summary').innerText = "親友の足跡を辿り、死の市から生還した！";
+        document.getElementById('clear-rank').innerText = playTime < 120 ? 'RANK: S' : 'RANK: A';
+        const min = String(Math.floor(playTime / 60)).padStart(2, '0');
+        const sec = String(playTime % 60).padStart(2, '0');
+        document.getElementById('clear-time-text').innerText = `TIME: ${min}:${sec}`;
+        document.getElementById('clear-overlay').style.display = 'flex';
+      }
+    }
+
+    function startLevel2() {
+      currentLevel = 2;
+      document.getElementById('next-stage-overlay').style.display = 'none';
+      monsters.push(new Monster());
+      startGame();
+    }
+
+    function selectChanceBox(choice) {
+      document.getElementById('chance-screen').style.display = 'none';
+      firecrackers += 2; updateHUD();
+    }
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+
+      if (gameActive && !isPaused) {
+        const canDash = isDashing && stamina > 5;
+        const moveSpeed = 0.075 * (canDash ? 1.6 : 1.0);
+
+        if (canDash && (Math.abs(joystickData.x) > 0.1 || Math.abs(joystickData.y) > 0.1)) {
+          stamina = Math.max(0, stamina - delta * 30);
+        } else {
+          stamina = Math.min(100, stamina + delta * 20);
+        }
+
+        if (Math.abs(joystickData.x) > 0.05 || Math.abs(joystickData.y) > 0.05) {
+          const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.rotation.y);
+          const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.rotation.y);
+
+          const moveDir = new THREE.Vector3();
+          moveDir.addScaledVector(forward, -joystickData.y);
+          moveDir.addScaledVector(right, joystickData.x);
+          moveDir.normalize();
+
+          const nextX = player.position.x + moveDir.x * moveSpeed;
+          const nextZ = player.position.z + moveDir.z * moveSpeed;
+
+          let collided = false;
+          for (let b of buildingColliders) {
+            if (nextX > b.minX && nextX < b.maxX && nextZ > b.minZ && nextZ < b.maxZ) {
+              collided = true; break;
+            }
+          }
+          if (!collided) {
+            player.position.x = Math.max(MAP_LIMIT.minX, Math.min(MAP_LIMIT.maxX, nextX));
+            player.position.z = Math.max(MAP_LIMIT.minZ, Math.min(MAP_LIMIT.maxZ, nextZ));
+          }
+        }
+
+        if (flashlightOn) {
+          battery = Math.max(0, battery - delta * 0.6);
+          flashlight.intensity = Math.max(0.5, (battery / 100) * 4.5);
+          if (battery <= 0 && Math.random() < 0.02) audio.playHeartbeat();
+        }
+
+        monsters.forEach(m => m.update(delta));
+        updateHUD();
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    animate();
+  </script>
+</body>
+</html>
