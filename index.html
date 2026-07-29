@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>死の市 - 朱い鳥居の午前零時 (Mobile Edition)</title>
+  <title>死の市 - 朱い鳥居の午前零時 (Realism Mobile Edition)</title>
   <style>
     * { box-sizing: border-box; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
     html, body {
       width: 100%; height: 100%;
       margin: 0; padding: 0;
       overflow: hidden;
-      background-color: #050202;
+      background-color: #020101;
       font-family: 'Courier New', Courier, serif, monospace;
     }
 
@@ -19,14 +19,14 @@
     #vhs-overlay {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       pointer-events: none;
-      background: repeating-linear-gradient(0deg, rgba(0,0,0,0.1), rgba(0,0,0,0.1) 1px, transparent 1px, transparent 2px);
-      box-shadow: inset 0 0 150px rgba(0,0,0,0.9);
+      background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15), rgba(0,0,0,0.15) 1px, transparent 1px, transparent 2px);
+      box-shadow: inset 0 0 200px rgba(0,0,0,0.95);
       z-index: 10;
     }
 
     #jumpscare-overlay {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: radial-gradient(circle, rgba(180,0,0,0.95) 0%, rgba(0,0,0,1) 80%);
+      background: radial-gradient(circle, rgba(180,0,0,0.95) 0%, rgba(0,0,0,1) 85%);
       display: none; justify-content: center; align-items: center;
       flex-direction: column; z-index: 60;
     }
@@ -41,93 +41,106 @@
 
     #crosshair {
       position: absolute; top: 50%; left: 50%; width: 6px; height: 6px;
-      background-color: rgba(255, 255, 255, 0.8); border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.7); border-radius: 50%;
       transform: translate(-50%, -50%); z-index: 20; display: none; pointer-events: none;
+      box-shadow: 0 0 6px rgba(255,255,255,0.8);
     }
 
     #ui {
-      position: absolute; top: 10px; left: 10px; color: #ddd;
+      position: absolute; top: 12px; left: 12px; color: #d0d0d0;
       z-index: 20; font-size: 11px; letter-spacing: 1px; display: none; pointer-events: none;
     }
 
     .hud-box {
-      background: rgba(0, 0, 0, 0.85); padding: 8px 12px;
-      border: 1px solid #444; border-left: 4px solid #b30000; margin-bottom: 6px;
+      background: rgba(10, 6, 6, 0.9); padding: 10px 14px;
+      border: 1px solid #331111; border-left: 4px solid #a30000; margin-bottom: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+      backdrop-filter: blur(2px);
     }
 
-    .bar-bg { width: 120px; height: 5px; background: #222; border: 1px solid #555; margin-top: 3px; }
+    .bar-bg { width: 130px; height: 6px; background: #110505; border: 1px solid #441111; margin-top: 4px; border-radius: 2px; overflow: hidden; }
     .bar-fill { width: 100%; height: 100%; transition: width 0.05s linear; }
-    #stamina-bar { background: #00b359; }
-    #battery-bar { background: #0088ff; }
+    #stamina-bar { background: linear-gradient(90deg, #0088cc, #00bbff); box-shadow: 0 0 8px rgba(0,170,255,0.6); }
+    #battery-bar { background: linear-gradient(90deg, #cc8800, #ffaa00); box-shadow: 0 0 8px rgba(255,170,0,0.6); }
 
-    /* モバイル仮想パッド・ボタン */
+    /* モバイル仮想パッド・ボタン (リアル・ダークテイスト) */
     #touch-controls {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       z-index: 25; display: none; pointer-events: none;
     }
     #virtual-joystick {
-      position: absolute; bottom: 30px; left: 30px; width: 120px; height: 120px;
-      background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); border-radius: 50%;
+      position: absolute; bottom: 35px; left: 35px; width: 130px; height: 130px;
+      background: radial-gradient(circle, rgba(20,20,20,0.4) 0%, rgba(5,5,5,0.7) 100%);
+      border: 2px solid rgba(150,30,30,0.5); border-radius: 50%;
       pointer-events: auto; touch-action: none;
+      box-shadow: inset 0 0 15px rgba(0,0,0,0.9), 0 0 15px rgba(120,0,0,0.3);
     }
     #joystick-knob {
-      position: absolute; top: 35px; left: 35px; width: 50px; height: 50px;
-      background: rgba(255,255,255,0.4); border-radius: 50%; pointer-events: none;
+      position: absolute; top: 40px; left: 40px; width: 50px; height: 50px;
+      background: radial-gradient(circle, rgba(120,20,20,0.8) 0%, rgba(50,5,5,0.9) 100%);
+      border: 1px solid rgba(255,100,100,0.4);
+      border-radius: 50%; pointer-events: none;
+      box-shadow: 0 0 10px rgba(255,0,0,0.4);
     }
 
     .touch-btn {
-      position: absolute; background: rgba(0,0,0,0.7); border: 2px solid #888; color: #fff;
+      position: absolute; background: radial-gradient(circle, rgba(25,10,10,0.85) 0%, rgba(8,3,3,0.95) 100%);
+      border: 2px solid #551a1a; color: #ddd;
       font-family: inherit; font-weight: bold; border-radius: 50%; display: flex;
       justify-content: center; align-items: center; pointer-events: auto; touch-action: manipulation;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.9), inset 0 0 10px rgba(100,0,0,0.3);
     }
-    .touch-btn:active { background: rgba(130,0,0,0.8); border-color: #f00; }
+    .touch-btn:active { background: radial-gradient(circle, rgba(120,0,0,0.9) 0%, rgba(50,0,0,0.95) 100%); border-color: #ff3333; box-shadow: 0 0 15px #ff0000; }
 
-    #btn-interact { bottom: 40px; right: 30px; width: 75px; height: 75px; font-size: 14px; border-color: #ffcc00; color: #ffcc00; display: none; }
-    #btn-firecracker { bottom: 130px; right: 30px; width: 60px; height: 60px; font-size: 12px; border-color: #ff3333; color: #ff3333; }
-    #btn-dash { bottom: 30px; left: 170px; width: 60px; height: 60px; font-size: 11px; }
-    #btn-memo { top: 15px; right: 85px; width: 45px; height: 45px; font-size: 12px; border-radius: 8px; pointer-events: auto; }
-    #btn-pause { top: 15px; right: 20px; width: 45px; height: 45px; font-size: 12px; border-radius: 8px; pointer-events: auto; }
+    #btn-interact { bottom: 45px; right: 35px; width: 80px; height: 80px; font-size: 13px; border-color: #b39200; color: #ffcc00; display: none; text-shadow: 0 0 6px #ffcc00; }
+    #btn-firecracker { bottom: 140px; right: 35px; width: 65px; height: 65px; font-size: 11px; border-color: #aa2222; color: #ff6666; text-shadow: 0 0 6px #ff0000; }
+    #btn-dash { bottom: 35px; left: 185px; width: 65px; height: 65px; font-size: 11px; border-color: #0066aa; color: #33bbff; text-shadow: 0 0 6px #0088ff; }
+    #btn-memo { top: 15px; right: 85px; width: 45px; height: 45px; font-size: 12px; border-radius: 8px; border-color: #444; }
+    #btn-pause { top: 15px; right: 20px; width: 45px; height: 45px; font-size: 12px; border-radius: 8px; border-color: #444; }
 
     #look-pad {
       position: absolute; top: 0; right: 0; width: 60%; height: 100%;
       z-index: 22; pointer-events: auto; touch-action: none; display: none;
     }
 
+    /* リアルで不気味なミニマップ */
     #minimap-container {
-      position: absolute; top: 75px; right: 20px; width: 110px; height: 110px;
-      background: rgba(5, 5, 10, 0.9); border: 2px solid #666; border-radius: 50%;
-      z-index: 25; display: none; box-shadow: 0 0 15px rgba(0,0,0,0.9); overflow: hidden; pointer-events: none;
+      position: absolute; top: 75px; right: 20px; width: 120px; height: 120px;
+      background: radial-gradient(circle, rgba(10,5,5,0.95) 0%, rgba(2,1,1,0.98) 100%);
+      border: 2px solid #551a1a; border-radius: 50%;
+      z-index: 25; display: none; box-shadow: 0 0 20px rgba(150,0,0,0.4), inset 0 0 15px rgba(0,0,0,0.9); overflow: hidden; pointer-events: none;
     }
-    #minimap-canvas { width: 100%; height: 100%; }
+    #minimap-canvas { width: 100%; height: 100%; display: block; }
 
     #chance-screen {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(5, 2, 10, 0.95); display: none; flex-direction: column;
+      background: rgba(5, 2, 5, 0.96); display: none; flex-direction: column;
       justify-content: center; align-items: center; z-index: 45; color: #fff;
     }
-    .chance-title { font-size: 28px; color: #ffcc00; letter-spacing: 4px; margin-bottom: 10px; text-shadow: 0 0 20px #ffcc00; text-align: center; }
+    .chance-title { font-size: 26px; color: #ffcc00; letter-spacing: 4px; margin-bottom: 10px; text-shadow: 0 0 20px #ffcc00; text-align: center; }
     .box-container { display: flex; gap: 15px; }
     .chest-card {
-      width: 100px; height: 140px; background: radial-gradient(circle, #2a2015 0%, #110b05 100%);
-      border: 2px solid #aa8833; border-radius: 8px; display: flex; flex-direction: column;
+      width: 105px; height: 145px; background: radial-gradient(circle, #2a1515 0%, #0d0505 100%);
+      border: 2px solid #883333; border-radius: 8px; display: flex; flex-direction: column;
       justify-content: center; align-items: center; cursor: pointer;
+      box-shadow: 0 0 15px rgba(150,0,0,0.3);
     }
 
     #memo-modal {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.85); display: none; justify-content: center; align-items: center;
+      background: rgba(0, 0, 0, 0.9); display: none; justify-content: center; align-items: center;
       z-index: 50; color: #eee; padding: 20px;
     }
     .memo-content {
-      background: #110808; border: 2px solid #b30000; border-left: 6px solid #ff3333;
-      padding: 20px; width: 100%; max-width: 500px; max-height: 80vh; overflow-y: auto; box-shadow: 0 0 30px rgba(179,0,0,0.5);
+      background: #120505; border: 2px solid #881111; border-left: 6px solid #cc2222;
+      padding: 22px; width: 100%; max-width: 500px; max-height: 80vh; overflow-y: auto; box-shadow: 0 0 40px rgba(179,0,0,0.6);
     }
-    .memo-title { font-size: 18px; color: #ffcc00; letter-spacing: 2px; margin-bottom: 12px; border-bottom: 1px solid #444; padding-bottom: 6px; }
+    .memo-title { font-size: 18px; color: #ffcc00; letter-spacing: 2px; margin-bottom: 12px; border-bottom: 1px solid #441111; padding-bottom: 6px; }
     .memo-body { font-size: 13px; line-height: 1.7; color: #d0d0d0; margin-bottom: 20px; white-space: pre-line; }
 
     #story-intro-screen {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: #000; display: none; flex-direction: column; justify-content: center; align-items: center;
+      background: #020101; display: none; flex-direction: column; justify-content: center; align-items: center;
       z-index: 35; color: #eee; padding: 0 8%; text-align: center;
     }
     .story-text { font-size: 14px; line-height: 2.0; color: #ccc; margin-bottom: 25px; letter-spacing: 1px; min-height: 100px; }
@@ -136,34 +149,36 @@
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       display: flex; flex-direction: column; justify-content: center; align-items: center; color: #eee; padding: 20px; text-align: center;
     }
-    #pause-menu { background: rgba(0, 0, 0, 0.92); z-index: 40; display: none; }
-    #title-screen { background: radial-gradient(circle, rgba(40, 2, 2, 0.98) 0%, rgba(0,0,0,1) 100%); z-index: 30; }
-    #options-screen { background: rgba(10, 3, 3, 0.96); z-index: 55; display: none; }
-    #gameover-overlay { background-color: rgba(30, 0, 0, 0.98); display: none; z-index: 50; }
-    #clear-overlay { background-color: rgba(0, 20, 10, 0.95); display: none; z-index: 50; }
-    #next-stage-overlay { background-color: rgba(40, 0, 0, 0.95); display: none; z-index: 50; }
+    #pause-menu { background: rgba(5, 2, 2, 0.94); z-index: 40; display: none; }
+    #title-screen { background: radial-gradient(circle, rgba(45, 5, 5, 0.98) 0%, rgba(2,1,1,1) 100%); z-index: 30; }
+    #options-screen { background: rgba(12, 4, 4, 0.97); z-index: 55; display: none; }
+    #gameover-overlay { background-color: rgba(35, 2, 2, 0.98); display: none; z-index: 50; }
+    #clear-overlay { background-color: rgba(2, 20, 10, 0.96); display: none; z-index: 50; }
+    #next-stage-overlay { background-color: rgba(45, 2, 2, 0.96); display: none; z-index: 50; }
 
     .btn-action {
-      background: transparent; border: 1px solid #666; color: #ddd;
+      background: linear-gradient(180deg, #1c0909 0%, #0d0404 100%); border: 1px solid #662222; color: #ddd;
       padding: 12px 28px; font-size: 15px; font-family: inherit; letter-spacing: 2px; cursor: pointer; margin-top: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.8);
     }
-    .btn-action:active { background: #800000; color: #fff; border-color: #f00; }
+    .btn-action:active { background: #800000; color: #fff; border-color: #ff0000; box-shadow: 0 0 15px #ff0000; }
 
     .diff-selector { display: flex; gap: 10px; margin: 12px 0; }
-    .diff-btn { background: #222; border: 1px solid #555; color: #aaa; padding: 6px 14px; font-size: 11px; }
-    .diff-btn.active { border-color: #ffcc00; color: #ffcc00; font-weight: bold; background: #332a00; }
+    .diff-btn { background: #150808; border: 1px solid #552222; color: #aaa; padding: 6px 14px; font-size: 11px; }
+    .diff-btn.active { border-color: #ffcc00; color: #ffcc00; font-weight: bold; background: #332a00; box-shadow: 0 0 10px rgba(255,204,0,0.3); }
 
     .option-group {
-      background: rgba(20, 10, 10, 0.8); border: 1px solid #444; padding: 15px;
-      margin-bottom: 15px; width: 100%; max-width: 340px; border-left: 4px solid #b30000; text-align: left;
+      background: rgba(18, 8, 8, 0.85); border: 1px solid #441111; padding: 15px;
+      margin-bottom: 15px; width: 100%; max-width: 340px; border-left: 4px solid #a30000; text-align: left;
     }
     .option-row { display: flex; justify-content: space-between; align-items: center; margin: 12px 0; font-size: 13px; }
-    .option-row input[type="range"] { width: 130px; accent-color: #b30000; }
+    .option-row input[type="range"] { width: 130px; accent-color: #a30000; }
 
     #message-log {
-      position: absolute; bottom: 120px; width: 100%; text-align: center;
-      color: #ff3333; font-size: 15px; font-weight: bold; letter-spacing: 1px;
+      position: absolute; bottom: 130px; width: 100%; text-align: center;
+      color: #ff4444; font-size: 15px; font-weight: bold; letter-spacing: 1px;
       z-index: 20; pointer-events: none; opacity: 0; transition: opacity 0.4s; padding: 0 10px;
+      text-shadow: 0 0 10px rgba(255,0,0,0.8);
     }
   </style>
   <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
@@ -177,7 +192,7 @@
 
   <div id="touch-controls">
     <div id="virtual-joystick"><div id="joystick-knob"></div></div>
-    <button class="touch-btn" id="btn-dash">走る</button>
+    <button class="touch-btn" id="btn-dash">常時ダッシュ</button>
     <button class="touch-btn" id="btn-firecracker" onclick="useFirecracker()">爆竹</button>
     <button class="touch-btn" id="btn-interact" onclick="checkInteraction()">調べる</button>
     <button class="touch-btn" id="btn-memo" onclick="toggleMemoListModal()">M</button>
@@ -198,14 +213,14 @@
       <div>TIME: <span id="timer-display">00:00</span></div>
     </div>
     <div class="hud-box">
-      <div>STAMINA</div>
-      <div class="bar-bg"><div id="stamina-bar" class="bar-fill"></div></div>
+      <div>STAMINA (無限)</div>
+      <div class="bar-bg"><div id="stamina-bar" class="bar-fill" style="width:100%;"></div></div>
       <div style="margin-top:4px;">BATTERY</div>
       <div class="bar-bg"><div id="battery-bar" class="bar-fill"></div></div>
     </div>
   </div>
 
-  <div id="minimap-container"><canvas id="minimap-canvas" width="110" height="110"></canvas></div>
+  <div id="minimap-container"><canvas id="minimap-canvas" width="120" height="120"></canvas></div>
 
   <div id="memo-modal">
     <div class="memo-content">
@@ -257,8 +272,8 @@
   <div id="message-log"></div>
 
   <div id="title-screen">
-    <div style="font-size:52px; color:#b30000; font-weight:bold; letter-spacing:6px;">死 の 市</div>
-    <div style="font-size:11px; color:#888; letter-spacing:2px; margin-bottom:12px;">- Mobile Edition -</div>
+    <div style="font-size:52px; color:#b30000; font-weight:bold; letter-spacing:6px; text-shadow: 0 0 20px #ff0000;">死 の 市</div>
+    <div style="font-size:11px; color:#888; letter-spacing:2px; margin-bottom:12px;">- Realism Mobile Edition -</div>
     
     <div class="diff-selector">
       <button class="diff-btn" onclick="setDifficulty('easy', this)">EASY</button>
@@ -269,14 +284,14 @@
     <button class="btn-action" id="start-btn" onclick="startStoryIntro()" style="width:260px;">谷 へ 踏 み 入 れ る</button>
     <button class="btn-action" onclick="openOptions('title')" style="width:260px;">オプション設定</button>
     <div style="font-size:10px; color:#777; margin-top:15px; line-height:1.5;">
-      [左スティック] 移動 | [画面右側スワイプ] 視点変更<br>
-      [走るボタン] ダッシュ | [調べる] 鍵・記録の回収<br>
+      [左スティック] 移動（常時ダッシュ仕様）<br>
+      [画面右側スワイプ] 視点変更 | [調べる] 鍵・記録回収<br>
       [爆竹] モンスターの一時麻痺
     </div>
   </div>
 
   <div id="gameover-overlay">
-    <div style="font-size:54px; color:#f00; font-weight:bold;">S L A U G H T E R</div>
+    <div style="font-size:54px; color:#f00; font-weight:bold; text-shadow: 0 0 20px #f00;">S L A U G H T E R</div>
     <div style="color:#ccc; margin-bottom:20px; font-size:14px;">あなたの魂は地底の澱みに呑まれた...</div>
     <button class="btn-action" onclick="returnToTitle()">タイトルへ戻る</button>
   </div>
@@ -292,7 +307,7 @@
   </div>
 
   <div id="clear-overlay">
-    <div style="font-size:44px; color:#00ff88; font-weight:bold;">T R U E  E S C A P E</div>
+    <div style="font-size:44px; color:#00ff88; font-weight:bold; text-shadow: 0 0 20px #00ff88;">T R U E  E S C A P E</div>
     <div style="margin:10px 0; color:#eee; font-size:14px;" id="clear-story-summary">真実を暴き、谷から生還した！</div>
     <div style="font-size:18px; color:#ffcc00;" id="clear-rank">RANK: S</div>
     <div style="font-size:13px; color:#aaa; margin-bottom:20px;" id="clear-time-text">TIME: 00:00</div>
@@ -508,8 +523,8 @@
 
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x040608);
-    scene.fog = new THREE.FogExp2(0x040608, 0.020);
+    scene.background = new THREE.Color(0x020101);
+    scene.fog = new THREE.FogExp2(0x020101, 0.022);
 
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 150);
     camera.rotation.order = 'YXZ';
@@ -524,48 +539,93 @@
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     container.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0x111622, 0.6);
+    const ambientLight = new THREE.AmbientLight(0x0d111a, 0.5);
     scene.add(ambientLight);
 
-    const redMoonLight = new THREE.DirectionalLight(0xff3333, 0.6);
+    const redMoonLight = new THREE.DirectionalLight(0xff2222, 0.5);
     redMoonLight.position.set(40, 70, -60);
     scene.add(redMoonLight);
 
-    const flashlight = new THREE.SpotLight(0xfff5e0, 4.5, 35, Math.PI / 4, 0.3, 1);
+    const flashlight = new THREE.SpotLight(0xfff5e0, 5.0, 38, Math.PI / 4, 0.35, 1);
     camera.add(flashlight);
     flashlight.position.set(0, 0, 0);
     flashlight.target.position.set(0, 0, -1);
     camera.add(flashlight.target);
 
-    function createAsphaltTexture(isRed = false) {
+    // リアルなコンクリート・アスファルト・ビルのジェネレータ
+    function createRealisticAsphaltTexture(isRed = false) {
       const canvas = document.createElement('canvas');
-      canvas.width = 512; canvas.height = 512;
+      canvas.width = 1024; canvas.height = 1024;
       const ctx = canvas.getContext('2d');
-      ctx.fillStyle = isRed ? '#2b0a0a' : '#181b20';
-      ctx.fillRect(0, 0, 512, 512);
-      for (let i = 0; i < 15000; i++) {
-        const x = Math.random() * 512, y = Math.random() * 512;
-        const shade = Math.floor(Math.random() * 35) + 12;
-        ctx.fillStyle = isRed ? `rgb(${shade + 40}, ${shade}, ${shade})` : `rgb(${shade}, ${shade}, ${shade})`;
-        ctx.fillRect(x, y, 1.5, 1.5);
+      ctx.fillStyle = isRed ? '#1c0707' : '#111317';
+      ctx.fillRect(0, 0, 1024, 1024);
+      for (let i = 0; i < 45000; i++) {
+        const x = Math.random() * 1024, y = Math.random() * 1024;
+        const shade = Math.floor(Math.random() * 40) + 10;
+        ctx.fillStyle = isRed ? `rgb(${shade + 25}, ${shade}, ${shade})` : `rgb(${shade}, ${shade}, ${shade})`;
+        ctx.fillRect(x, y, 2, 2);
       }
       const texture = new THREE.CanvasTexture(canvas);
       texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping;
-      texture.repeat.set(8, 8);
+      texture.repeat.set(12, 12);
       return texture;
     }
 
-    const asphaltTex = createAsphaltTexture(false);
-    const redAsphaltTex = createAsphaltTexture(true);
+    function createBuildingFacadeTexture(isRed = false) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512; canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = isRed ? '#180404' : '#0e1014';
+      ctx.fillRect(0, 0, 512, 512);
+
+      // 壁面の汚れやひび割れ表現
+      for (let i = 0; i < 8000; i++) {
+        const x = Math.random() * 512, y = Math.random() * 512;
+        ctx.fillStyle = isRed ? 'rgba(50,10,10,0.3)' : 'rgba(20,20,25,0.4)';
+        ctx.fillRect(x, y, 4, 4);
+      }
+
+      // リアルな窓の格子（一部消灯、一部うっすら点灯）
+      const cols = 4, rows = 8;
+      const cw = 512 / cols, ch = 512 / rows;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          ctx.fillStyle = isRed ? '#260606' : '#181b22';
+          ctx.fillRect(c * cw + 15, r * ch + 15, cw - 30, ch - 30);
+
+          // 窓ガラス
+          const lit = Math.random();
+          if (lit < 0.15) {
+            ctx.fillStyle = isRed ? 'rgba(255,50,50,0.7)' : 'rgba(255,220,150,0.5)';
+            ctx.shadowBlur = 10; ctx.shadowColor = isRed ? '#f00' : '#fa0';
+          } else {
+            ctx.fillStyle = isRed ? '#0d0202' : '#050608';
+            ctx.shadowBlur = 0;
+          }
+          ctx.fillRect(c * cw + 25, r * ch + 25, cw - 50, ch - 50);
+          ctx.shadowBlur = 0;
+        }
+      }
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(1, 2);
+      return texture;
+    }
+
+    const asphaltTex = createRealisticAsphaltTexture(false);
+    const redAsphaltTex = createRealisticAsphaltTexture(true);
+    const bldgTex = createBuildingFacadeTexture(false);
+    const redBldgTex = createBuildingFacadeTexture(true);
 
     const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(200, 200),
-      new THREE.MeshStandardMaterial({ map: asphaltTex, roughness: 0.85, metalness: 0.05 })
+      new THREE.PlaneGeometry(250, 250),
+      new THREE.MeshStandardMaterial({ map: asphaltTex, roughness: 0.8, metalness: 0.1 })
     );
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
 
-    const MAP_LIMIT = { minX: -60, maxX: 60, minZ: -65, maxZ: 45 };
+    const MAP_LIMIT = { minX: -65, maxX: 65, minZ: -70, maxZ: 50 };
     const toriiPosition = new THREE.Vector3(0, 0, -5);
     let escapeGateMesh = null;
     let toriiGroup = null;
@@ -573,25 +633,25 @@
     function createTorii() {
       if (toriiGroup) scene.remove(toriiGroup);
       toriiGroup = new THREE.Group();
-      const woodMat = new THREE.MeshStandardMaterial({ color: currentLevel === 2 ? 0xcc0000 : 0x881111, roughness: 0.6 });
-      const blackMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
+      const woodMat = new THREE.MeshStandardMaterial({ color: currentLevel === 2 ? 0xb30000 : 0x771111, roughness: 0.5, metalness: 0.2 });
+      const blackMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.7 });
 
-      const pillarGeo = new THREE.CylinderGeometry(0.3, 0.35, 5, 12);
-      const pillarL = new THREE.Mesh(pillarGeo, woodMat); pillarL.position.set(-2, 2.5, 0); toriiGroup.add(pillarL);
-      const pillarR = new THREE.Mesh(pillarGeo, woodMat); pillarR.position.set(2, 2.5, 0); toriiGroup.add(pillarR);
+      const pillarGeo = new THREE.CylinderGeometry(0.32, 0.38, 5.2, 16);
+      const pillarL = new THREE.Mesh(pillarGeo, woodMat); pillarL.position.set(-2.1, 2.6, 0); toriiGroup.add(pillarL);
+      const pillarR = new THREE.Mesh(pillarGeo, woodMat); pillarR.position.set(2.1, 2.6, 0); toriiGroup.add(pillarR);
 
-      const kasagi = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.4, 0.6), woodMat); kasagi.position.set(0, 4.8, 0); toriiGroup.add(kasagi);
-      const shimagi = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.3, 0.5), blackMat); shimagi.position.set(0, 4.3, 0); toriiGroup.add(shimagi);
-      const nuki = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.25, 0.4), woodMat); nuki.position.set(0, 3.2, 0); toriiGroup.add(nuki);
+      const kasagi = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.45, 0.65), woodMat); kasagi.position.set(0, 5.0, 0); toriiGroup.add(kasagi);
+      const shimagi = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.3, 0.5), blackMat); shimagi.position.set(0, 4.4, 0); toriiGroup.add(shimagi);
+      const nuki = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.28, 0.45), woodMat); nuki.position.set(0, 3.3, 0); toriiGroup.add(nuki);
 
-      const toriiLight = new THREE.PointLight(currentLevel === 2 ? 0xff0000 : 0xff3300, 2.0, 10);
-      toriiLight.position.set(0, 3, 1);
+      const toriiLight = new THREE.PointLight(currentLevel === 2 ? 0xff0033 : 0xff3300, 3.0, 12);
+      toriiLight.position.set(0, 3.2, 1);
       toriiGroup.add(toriiLight);
 
-      const gateGeo = new THREE.PlaneGeometry(3.6, 4.5);
-      const gateMat = new THREE.MeshBasicMaterial({ color: currentLevel === 2 ? 0xff0055 : 0x00ffff, side: THREE.DoubleSide, transparent: true, opacity: 0.0 });
+      const gateGeo = new THREE.PlaneGeometry(3.8, 4.8);
+      const gateMat = new THREE.MeshBasicMaterial({ color: currentLevel === 2 ? 0xff0066 : 0x00ffff, side: THREE.DoubleSide, transparent: true, opacity: 0.0 });
       escapeGateMesh = new THREE.Mesh(gateGeo, gateMat);
-      escapeGateMesh.position.set(0, 2.3, 0);
+      escapeGateMesh.position.set(0, 2.4, 0);
       toriiGroup.add(escapeGateMesh);
 
       toriiGroup.position.copy(toriiPosition);
@@ -608,15 +668,19 @@
       buildingColliders.length = 0;
 
       const isLv2 = (currentLevel === 2);
-      const bldgMat = new THREE.MeshStandardMaterial({ color: isLv2 ? 0x220505 : 0x121418, roughness: 0.8 });
-      const roofMat = new THREE.MeshStandardMaterial({ color: isLv2 ? 0x0d0202 : 0x08090c, roughness: 0.95 });
+      const currentBldgMat = new THREE.MeshStandardMaterial({ 
+        map: isLv2 ? redBldgTex : bldgTex, 
+        roughness: 0.7, 
+        metalness: 0.2 
+      });
+      const roofMat = new THREE.MeshStandardMaterial({ color: isLv2 ? 0x080202 : 0x06070a, roughness: 0.95 });
 
-      for (let z = -60; z <= 35; z += 18) {
-        for (let x = -40; x <= 40; x += 22) {
+      for (let z = -65; z <= 40; z += 18) {
+        for (let x = -45; x <= 45; x += 22) {
           if (Math.abs(x) < 8 && Math.abs(z) < 12) continue;
 
-          const w = 12, d = 12, h = 8 + Math.random() * 6;
-          const bldg = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bldgMat);
+          const w = 12, d = 12, h = 9 + Math.random() * 8;
+          const bldg = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), currentBldgMat);
           bldg.position.set(x, h/2, z);
           scene.add(bldg);
           buildingMeshes.push(bldg);
@@ -634,21 +698,21 @@
 
     function createKeyMesh() {
       const group = new THREE.Group();
-      const goldMat = new THREE.MeshStandardMaterial({ color: currentLevel === 2 ? 0xff3333 : 0xffcc00, metalness: 0.8, roughness: 0.2 });
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.05, 8, 16), goldMat);
-      ring.position.y = 0.35; group.add(ring);
-      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.5), goldMat);
+      const goldMat = new THREE.MeshStandardMaterial({ color: currentLevel === 2 ? 0xff2222 : 0xffcc00, metalness: 0.9, roughness: 0.15 });
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.05, 12, 24), goldMat);
+      ring.position.y = 0.38; group.add(ring);
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.55), goldMat);
       shaft.position.y = 0.1; group.add(shaft);
-      const bit = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.15, 0.04), goldMat);
-      bit.position.set(0.06, -0.05, 0); group.add(bit);
+      const bit = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 0.05), goldMat);
+      bit.position.set(0.07, -0.05, 0); group.add(bit);
       group.rotation.x = Math.PI / 4;
       return group;
     }
 
     function createMemoMesh() {
       const group = new THREE.Group();
-      const paperMat = new THREE.MeshStandardMaterial({ color: 0xddccaa, roughness: 0.8 });
-      const paper = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.02, 0.45), paperMat);
+      const paperMat = new THREE.MeshStandardMaterial({ color: 0xd8c29d, roughness: 0.85 });
+      const paper = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.02, 0.48), paperMat);
       group.add(paper);
       return group;
     }
@@ -685,8 +749,8 @@
       let attempts = 0;
       while (!safe && attempts < 200) {
         attempts++;
-        const rx = (Math.random() - 0.5) * 76;
-        const rz = (Math.random() - 0.5) * 85 - 12;
+        const rx = (Math.random() - 0.5) * 80;
+        const rz = (Math.random() - 0.5) * 90 - 12;
         if (Math.abs(rx) < 6 && Math.abs(rz - (-5)) < 6) continue;
         let inside = false;
         for (let b of buildingColliders) {
@@ -717,13 +781,23 @@
       }
       for (let i = 0; i < 4; i++) {
         const bGroup = new THREE.Group();
-        bGroup.add(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.4, 0.2), new THREE.MeshStandardMaterial({ color: 0x0088ff, metalness: 0.8 })));
+        const bMat = new THREE.MeshStandardMaterial({ color: 0x0088ff, metalness: 0.8, roughness: 0.2 });
+        const capMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+        const bodyMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.45, 16), bMat);
+        bodyMesh.position.y = 0.22; bGroup.add(bodyMesh);
+        const topMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.1, 16), capMat);
+        topMesh.position.y = 0.48; bGroup.add(topMesh);
         bGroup.position.copy(getRandomSafePosition());
         scene.add(bGroup); batteries.push({ mesh: bGroup, collected: false });
       }
       for (let i = 0; i < 3; i++) {
         const fGroup = new THREE.Group();
-        fGroup.add(new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.4, 12), new THREE.MeshStandardMaterial({ color: 0xcc2222 })));
+        const fMat = new THREE.MeshStandardMaterial({ color: 0xcc2222, roughness: 0.4 });
+        const labelMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.3 });
+        const bodyMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.5, 16), fMat);
+        bodyMesh.position.y = 0.25; fGroup.add(bodyMesh);
+        const labelMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.145, 0.145, 0.18, 16), labelMat);
+        labelMesh.position.y = 0.25; fGroup.add(labelMesh);
         fGroup.position.copy(getRandomSafePosition());
         scene.add(fGroup); firecrackerItems.push({ mesh: fGroup, collected: false });
       }
@@ -735,29 +809,29 @@
     class Monster {
       constructor() {
         this.mesh = new THREE.Group();
-        const mat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
-        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 2.2, 8), mat);
-        body.position.y = 1.1; this.mesh.add(body);
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 12, 12), mat);
-        head.position.y = 2.4; this.mesh.add(head);
+        const mat = new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.85, metalness: 0.3 });
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.62, 2.3, 12), mat);
+        body.position.y = 1.15; this.mesh.add(body);
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.48, 16, 16), mat);
+        head.position.y = 2.45; this.mesh.add(head);
         const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.08), eyeMat); eyeL.position.set(0.18, 2.45, -0.35); this.mesh.add(eyeL);
-        const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.08), eyeMat); eyeR.position.set(-0.18, 2.45, -0.35); this.mesh.add(eyeR);
+        const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.08), eyeMat); eyeL.position.set(0.18, 2.5, -0.38); this.mesh.add(eyeL);
+        const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.08), eyeMat); eyeR.position.set(-0.18, 2.5, -0.38); this.mesh.add(eyeR);
 
         this.mesh.position.set(20, 0, -35);
         scene.add(this.mesh);
-        this.speed = 0.042;
+        this.speed = 0.045;
         this.stunTimer = 0;
         this.isChasing = false;
       }
       reset(x, z) { this.mesh.position.set(x, 0, z); this.stunTimer = 0; this.isChasing = false; }
       update(delta) {
-        if (this.stunTimer > 0) { this.stunTimer -= delta; this.mesh.rotation.y += 0.1; return; }
+        if (this.stunTimer > 0) { this.stunTimer -= delta; this.mesh.rotation.y += 0.12; return; }
         const pPos = player.position;
         const mPos = this.mesh.position;
         const dist = mPos.distanceTo(pPos);
 
-        if (dist < 14) this.isChasing = true;
+        if (dist < 15) this.isChasing = true;
         if (this.isChasing) {
           const targetAngle = Math.atan2(pPos.x - mPos.x, pPos.z - mPos.z);
           this.mesh.rotation.y = targetAngle;
@@ -779,16 +853,14 @@
     const monsters = [new Monster()];
 
     let keysCollected = 0;
-    let stamina = 100;
     let battery = 100;
     let firecrackers = 1;
     let flashlightOn = true;
     let gameActive = false;
     let isPaused = false;
 
-    // タッチ仮想スティック & 視点操作の状態管理
+    // タッチ仮想スティック & 視点操作の状態管理（常時ダッシュ仕様）
     let joystickData = { active: false, x: 0, y: 0 };
-    let isDashing = false;
 
     const stick = document.getElementById('virtual-joystick');
     const knob = document.getElementById('joystick-knob');
@@ -819,7 +891,7 @@
     stick.addEventListener('touchcancel', endJoystick);
 
     function updateJoystick(clientX, clientY) {
-      const maxDist = 35;
+      const maxDist = 40;
       let dx = clientX - stickCenter.x;
       let dy = clientY - stickCenter.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
@@ -831,11 +903,6 @@
       joystickData.x = dx / maxDist;
       joystickData.y = dy / maxDist;
     }
-
-    // ダッシュボタンのタッチ対応
-    const dashBtn = document.getElementById('btn-dash');
-    dashBtn.addEventListener('touchstart', () => { isDashing = true; dashBtn.style.background = '#800000'; });
-    dashBtn.addEventListener('touchend', () => { isDashing = false; dashBtn.style.background = 'rgba(0,0,0,0.7)'; });
 
     // 視点操作（画面右側スワイプ）
     const lookPad = document.getElementById('look-pad');
@@ -909,7 +976,7 @@
     function startGame() {
       audio.startBGM(currentLevel === 2);
       gameActive = true; isPaused = false;
-      keysCollected = 0; battery = 100; stamina = 100; firecrackers = currentLevel === 2 ? 2 : 1; playTime = 0;
+      keysCollected = 0; battery = 100; firecrackers = currentLevel === 2 ? 2 : 1; playTime = 0;
 
       player.position.set(0, 1.6, 2);
       player.rotation.set(0, 0, 0); camera.rotation.set(0, 0, 0);
@@ -966,7 +1033,7 @@
           audio.playSE(600, 0.2); showGameMessage(`認証の鍵を取得 (${keysCollected}/5)`);
           updateHUD();
           if (keysCollected >= 5 && !gateActivated) {
-            gateActivated = true; escapeGateMesh.material.opacity = 0.75;
+            gateActivated = true; escapeGateMesh.material.opacity = 0.8;
             audio.playSE(880, 0.6); showGameMessage("朱い鳥居の中枢セキュリティが全解除された！");
           }
           return;
@@ -1018,7 +1085,6 @@
       document.getElementById('key-count').innerText = `${keysCollected} / 5`;
       document.getElementById('memo-count').innerText = `${collectedMemosCount} / ${storyMemosData.length}`;
       document.getElementById('firecracker-count').innerText = firecrackers;
-      document.getElementById('stamina-bar').style.width = `${stamina}%`;
       document.getElementById('battery-bar').style.width = `${battery}%`;
 
       let near = false; const pPos = player.position;
@@ -1028,6 +1094,60 @@
       for (let f of firecrackerItems) if (!f.collected && f.mesh.position.distanceTo(pPos) < 2.5) near = true;
       if (gateActivated && toriiPosition.distanceTo(pPos) < 3.5) near = true;
       document.getElementById('btn-interact').style.display = near ? 'flex' : 'none';
+    }
+
+    // ミニマップ描画処理
+    const minimapCanvas = document.getElementById('minimap-canvas');
+    const minimapCtx = minimapCanvas.getContext('2d');
+
+    function drawMinimap() {
+      if (!gameActive) return;
+      minimapCtx.clearRect(0, 0, 120, 120);
+
+      // マップ背景
+      minimapCtx.fillStyle = 'rgba(8, 4, 4, 0.9)';
+      minimapCtx.fillRect(0, 0, 120, 120);
+
+      const scale = 1.1;
+      const px = 60 + player.position.x * scale;
+      const pz = 60 + player.position.z * scale;
+
+      minimapCtx.save();
+      minimapCtx.translate(60, 60);
+      minimapCtx.rotate(-player.rotation.y);
+      minimapCtx.translate(-px, -pz);
+
+      // 建物位置
+      minimapCtx.fillStyle = '#221515';
+      buildingColliders.forEach(b => {
+        minimapCtx.fillRect(60 + (b.minX + 6) * scale, 60 + (b.minZ + 6) * scale, (b.maxX - b.minX) * scale, (b.maxZ - b.minZ) * scale);
+      });
+
+      // 鍵の位置（黄色）
+      minimapCtx.fillStyle = '#ffcc00';
+      keys.forEach(k => {
+        if (!k.collected) {
+          minimapCtx.beginPath();
+          minimapCtx.arc(60 + k.mesh.position.x * scale, 60 + k.mesh.position.z * scale, 3, 0, Math.PI * 2);
+          minimapCtx.fill();
+        }
+      });
+
+      // モンスターの位置（赤）
+      minimapCtx.fillStyle = '#ff0000';
+      monsters.forEach(m => {
+        minimapCtx.beginPath();
+        minimapCtx.arc(60 + m.mesh.position.x * scale, 60 + m.mesh.position.z * scale, 4, 0, Math.PI * 2);
+        minimapCtx.fill();
+      });
+
+      minimapCtx.restore();
+
+      // プレイヤー自身（中央の青い点）
+      minimapCtx.fillStyle = '#00aaff';
+      minimapCtx.beginPath();
+      minimapCtx.arc(60, 60, 4, 0, Math.PI * 2);
+      minimapCtx.fill();
     }
 
     function triggerJumpscare() {
@@ -1072,14 +1192,7 @@
       const delta = clock.getDelta();
 
       if (gameActive && !isPaused) {
-        const canDash = isDashing && stamina > 5;
-        const moveSpeed = 0.075 * (canDash ? 1.6 : 1.0);
-
-        if (canDash && (Math.abs(joystickData.x) > 0.1 || Math.abs(joystickData.y) > 0.1)) {
-          stamina = Math.max(0, stamina - delta * 30);
-        } else {
-          stamina = Math.min(100, stamina + delta * 20);
-        }
+        const moveSpeed = 0.12; // 常時ダッシュスピード
 
         if (Math.abs(joystickData.x) > 0.05 || Math.abs(joystickData.y) > 0.05) {
           const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.rotation.y);
@@ -1106,12 +1219,13 @@
         }
 
         if (flashlightOn) {
-          battery = Math.max(0, battery - delta * 0.6);
-          flashlight.intensity = Math.max(0.5, (battery / 100) * 4.5);
+          battery = Math.max(0, battery - delta * 0.4);
+          flashlight.intensity = Math.max(0.5, (battery / 100) * 5.0);
           if (battery <= 0 && Math.random() < 0.02) audio.playHeartbeat();
         }
 
         monsters.forEach(m => m.update(delta));
+        drawMinimap();
         updateHUD();
       }
 
