@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>死の市 - 朱い鳥居の午前零時 (Proximity BGM Update)</title>
+  <title>死の市 - Torii Escape Edition (Level 2 Fix)</title>
   <style>
     * { box-sizing: border-box; }
     html, body {
@@ -61,10 +61,6 @@
     #stamina-bar { background: #00b359; }
     #battery-bar { background: #0088ff; }
 
-    #danger-indicator {
-      margin-top: 6px; font-size: 11px; color: #ff3333; font-weight: bold; letter-spacing: 1px;
-    }
-
     #interact-prompt {
       position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%);
       color: #ffcc00; font-size: 16px; font-weight: bold; letter-spacing: 2px;
@@ -79,24 +75,19 @@
     }
     #minimap-canvas { width: 100%; height: 100%; }
 
-    #memo-modal {
+    #chance-screen {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.85); display: none; justify-content: center; align-items: center;
-      z-index: 50; color: #eee;
+      background: rgba(5, 2, 10, 0.95); display: none; flex-direction: column;
+      justify-content: center; align-items: center; z-index: 45; color: #fff;
     }
-    .memo-content {
-      background: #110808; border: 2px solid #b30000; border-left: 6px solid #ff3333;
-      padding: 30px 40px; width: 640px; max-width: 90%; box-shadow: 0 0 30px rgba(179,0,0,0.5);
+    .chance-title { font-size: 36px; color: #ffcc00; letter-spacing: 6px; margin-bottom: 10px; text-shadow: 0 0 20px #ffcc00; }
+    .box-container { display: flex; gap: 20px; }
+    .chest-card {
+      width: 120px; height: 160px; background: radial-gradient(circle, #2a2015 0%, #110b05 100%);
+      border: 2px solid #aa8833; border-radius: 8px; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; cursor: pointer; transition: all 0.3s;
     }
-    .memo-title { font-size: 20px; color: #ffcc00; letter-spacing: 3px; margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 8px; }
-    .memo-body { font-size: 14px; line-height: 1.8; color: #d0d0d0; margin-bottom: 25px; white-space: pre-line; }
-
-    #story-intro-screen {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: #000; display: none; flex-direction: column; justify-content: center; align-items: center;
-      z-index: 35; color: #eee; padding: 0 12%; text-align: center;
-    }
-    .story-text { font-size: 16px; line-height: 2.2; color: #ccc; margin-bottom: 30px; letter-spacing: 2px; min-height: 120px; }
+    .chest-card:hover { transform: translateY(-8px) scale(1.05); border-color: #ffdd66; box-shadow: 0 0 20px #ffcc00; }
 
     #pause-menu, #title-screen, #options-screen, #gameover-overlay, #clear-overlay, #next-stage-overlay {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -138,7 +129,7 @@
 
   <div id="vhs-overlay"></div>
   <div id="crosshair"></div>
-  <div id="interact-prompt">[E] 調べる</div>
+  <div id="interact-prompt">[E] アイテムを拾う</div>
 
   <div id="jumpscare-overlay">
     <div class="jumpscare-face">💀</div>
@@ -147,12 +138,10 @@
 
   <div id="ui">
     <div class="hud-box">
-      <div>『死の市』管理中枢 [<span id="stage-name-hud">Lv.1</span>]</div>
-      <div style="margin-top:2px;">認証の鍵: <span id="key-count" style="color:#ffcc00; font-weight:bold;">0 / 5</span></div>
-      <div>調査記録 [M]: <span id="memo-count" style="color:#00ff88; font-weight:bold;">0 / 4</span></div>
+      <div>『死の市』中央鳥居 [<span id="stage-name-hud">Lv.1</span>]</div>
+      <div style="margin-top:2px;">鍵: <span id="key-count" style="color:#ffcc00; font-weight:bold;">0 / 5</span></div>
       <div>爆竹 [F]: <span id="firecracker-count" style="color:#ff3333; font-weight:bold;">0</span> 個</div>
       <div>TIME: <span id="timer-display">00:00</span></div>
-      <div id="danger-indicator">警戒度: 平穏</div>
     </div>
     <div class="hud-box">
       <div>STAMINA</div>
@@ -160,23 +149,20 @@
       <div style="margin-top:4px;">BATTERY</div>
       <div class="bar-bg"><div id="battery-bar" class="bar-fill"></div></div>
     </div>
-    <div style="font-size:10px; color:#aaa; margin-top:4px;">[E] 調べる | [F] 爆竹で一時麻痺 | [Esc] ポーズ</div>
+    <div style="font-size:10px; color:#aaa; margin-top:4px;">[E] 調べる | [F] 爆竹 | [Esc] ポーズ</div>
   </div>
 
   <div id="minimap-container"><canvas id="minimap-canvas" width="160" height="160"></canvas></div>
 
-  <div id="memo-modal">
-    <div class="memo-content">
-      <div class="memo-title" id="memo-modal-title">調査記録</div>
-      <div class="memo-body" id="memo-modal-body">ここにテキストが入ります。</div>
-      <button class="btn-action" onclick="closeMemoModal()" style="margin-top:0;">閉じる ([E] または クリック)</button>
+  <div id="chance-screen">
+    <div class="chance-title">✨ CHANCE TIME ✨</div>
+    <div style="margin-bottom:20px; color:#aaa;">運命の宝箱を選べ...</div>
+    <div class="box-container">
+      <div class="chest-card" onclick="selectChanceBox(0)"><div style="font-size:40px;">🎁</div><div>壱</div></div>
+      <div class="chest-card" onclick="selectChanceBox(1)"><div style="font-size:40px;">🎁</div><div>弐</div></div>
+      <div class="chest-card" onclick="selectChanceBox(2)"><div style="font-size:40px;">🎁</div><div>参</div></div>
     </div>
-  </div>
-
-  <div id="story-intro-screen">
-    <div style="font-size:24px; color:#b30000; letter-spacing:4px; margin-bottom:20px;">- 序章：灰塵の谷の記憶 -</div>
-    <div class="story-text" id="story-intro-text"></div>
-    <button class="btn-action" id="story-next-btn" onclick="nextStoryIntro()">次へ</button>
+    <div id="chance-result" style="margin-top:25px; font-size:18px; color:#00ff88; min-height:25px;"></div>
   </div>
 
   <div id="pause-menu">
@@ -205,7 +191,7 @@
 
   <div id="title-screen">
     <div style="font-size:64px; color:#b30000; font-weight:bold; letter-spacing:10px;">死 の 市</div>
-    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- 旧名称：灰塵の谷 -</div>
+    <div style="font-size:12px; color:#888; letter-spacing:4px; margin-bottom:15px;">- BLOOD MOON EDITION -</div>
     
     <div class="diff-selector">
       <button class="diff-btn" onclick="setDifficulty('easy', this)">EASY</button>
@@ -213,34 +199,34 @@
       <button class="diff-btn" onclick="setDifficulty('hard', this)">HARD</button>
     </div>
 
-    <button class="btn-action" id="start-btn" onclick="startStoryIntro()">谷 へ 足 を 踏 み 入 れ る</button>
+    <button class="btn-action" id="start-btn">街 に 入 る</button>
     <button class="btn-action" onclick="openOptions('title')">オプション設定</button>
     <div style="font-size:11px; color:#777; margin-top:20px; line-height:1.6; text-align:center;">
-      [W/A/S/D] 移動 | [Shift] ダッシュ | [E] 認証の鍵・調査記録の回収<br>
-      [F] 爆竹使用（敏感な感覚器官を刺激しモンスターを一時麻痺）<br>
-      ※親友の足跡を追い、管理中枢のセキュリティを解除して生還せよ。
+      [W/A/S/D] 移動 | [Shift] ダッシュ | [E] アイテム取得<br>
+      [F] 爆竹使用（怪物麻痺）<br>
+      ※モンスターに接触すると即ゲームオーバー！
     </div>
   </div>
 
   <div id="gameover-overlay">
     <div style="font-size:72px; color:#f00; font-weight:bold;">S L A U G H T E R</div>
-    <div style="color:#ccc; margin-bottom:20px;">あなたの魂は地底の澱みに呑まれた...</div>
+    <div style="color:#ccc; margin-bottom:20px;">あなたの魂は闇に囚われた...</div>
     <button class="btn-action" onclick="returnToTitle()">タイトルへ戻る</button>
   </div>
 
   <div id="next-stage-overlay">
-    <div style="font-size:54px; color:#ffcc00; font-weight:bold;" id="next-stage-title">SECURITY UNLOCKED</div>
-    <div style="margin:15px 0; color:#eee; font-size:18px;" id="next-stage-desc">最深部へ進みますか？</div>
-    <div style="font-size:13px; color:#ff4444; margin-bottom:25px;">※最深部はさらに危険な環境澱みが渦巻くエリアです</div>
+    <div style="font-size:54px; color:#ffcc00; font-weight:bold;">STAGE 1 CLEAR</div>
+    <div style="margin:15px 0; color:#eee; font-size:20px;">Lv.2 に進みますか？</div>
+    <div style="font-size:13px; color:#ff4444; margin-bottom:25px;">※Lv.2はさらに凶悪な赤き空間・ハードの2倍の難易度になります（スタミナ制限なし）</div>
     <div style="display: flex; gap: 20px;">
-      <button class="btn-action" onclick="startLevel2()" style="margin-top:0; background:#800000; border-color:#f00;">はい (最深部へ)</button>
+      <button class="btn-action" onclick="startLevel2()" style="margin-top:0; background:#800000; border-color:#f00;">はい (Lv.2へ)</button>
       <button class="btn-action" onclick="returnToTitle()" style="margin-top:0;">いいえ (タイトルへ)</button>
     </div>
   </div>
 
   <div id="clear-overlay">
-    <div style="font-size:54px; color:#00ff88; font-weight:bold;">T R U E  E S C A P E</div>
-    <div style="margin:10px 0; color:#eee;" id="clear-story-summary">真実を暴き、谷から生還した！</div>
+    <div style="font-size:54px; color:#00ff88; font-weight:bold;">E S C A P E D</div>
+    <div style="margin:10px 0; color:#eee;">全ステージを踏破し、現世へ生還した！</div>
     <div style="font-size:20px; color:#ffcc00;" id="clear-rank">RANK: S</div>
     <div style="font-size:14px; color:#aaa; margin-bottom:20px;" id="clear-time-text">TIME: 00:00</div>
     <button class="btn-action" onclick="returnToTitle()">タイトルへ戻る</button>
@@ -256,11 +242,7 @@
         this.volume = 0.7;
         this.bgmInterval = null;
         this.melodyInterval = null;
-        
-        // 接近モンスターBGM用パラメータ
-        this.proximityGain = null;
-        this.proximityOsc = null;
-        this.proximityFilter = null;
+        this.cicadaInterval = null;
         this.isBgmPlaying = false;
         this.isLevel2 = false;
       }
@@ -270,55 +252,10 @@
           this.masterGain = this.ctx.createGain();
           this.masterGain.gain.setValueAtTime(this.volume, this.ctx.currentTime);
           this.masterGain.connect(this.ctx.destination);
-          
-          // 接近時ホラーBGM（常に生成しつつゲイン（音量）を動的にコントロールする）
-          this.setupProximityBGM();
         }
         if (this.ctx.state === 'suspended') {
           this.ctx.resume();
         }
-      }
-      setupProximityBGM() {
-        if (!this.ctx) return;
-        const now = this.ctx.currentTime;
-
-        // 不気味なうねり音を生み出す発振器
-        this.proximityOsc = this.ctx.createOscillator();
-        this.proximityOsc.type = 'sawtooth';
-        this.proximityOsc.frequency.setValueAtTime(82.41, now); // 低音の不協和音ベース
-
-        // 音の広がりと不気味さを演出するフィルター
-        this.proximityFilter = this.ctx.createBiquadFilter();
-        this.proximityFilter.type = 'lowpass';
-        this.proximityFilter.frequency.setValueAtTime(250, now);
-
-        // ボリューム制御用のゲイン
-        this.proximityGain = this.ctx.createGain();
-        this.proximityGain.gain.setValueAtTime(0.0, now); // 初期値は無音
-
-        this.proximityOsc.connect(this.proximityFilter);
-        this.proximityFilter.connect(this.proximityGain);
-        this.proximityGain.connect(this.masterGain);
-
-        this.proximityOsc.start(now);
-      }
-      updateProximityBGM(minDist) {
-        if (!this.ctx || !this.proximityGain) return;
-        const now = this.ctx.currentTime;
-
-        // モンスターとの距離（minDist）が近づくほど（例: 20m以内から急増）音量とフィルターが大きくなる
-        let targetGain = 0.0;
-        let targetFreq = 200;
-
-        if (minDist < 20) {
-          // 距離 20m〜1m に応じて音量を 0.0 〜 0.45 にスケール
-          const factor = Math.max(0, 1 - (minDist / 20));
-          targetGain = factor * 0.45;
-          targetFreq = 200 + factor * 800; // 近づくほど高域のざらつきが強調される
-        }
-
-        this.proximityGain.gain.setTargetAtTime(targetGain, now, 0.1);
-        this.proximityFilter.frequency.setTargetAtTime(targetFreq, now, 0.1);
       }
       setVolume(val) {
         this.volume = parseFloat(val);
@@ -348,7 +285,7 @@
           filter.frequency.setValueAtTime(this.isLevel2 ? 100 : 140, now);
 
           gain.gain.setValueAtTime(0.001, now);
-          gain.gain.linearRampToValueAtTime(this.isLevel2 ? 0.35 : 0.25, now + 2.0);
+          gain.gain.linearRampToValueAtTime(this.isLevel2 ? 0.38 : 0.28, now + 2.0);
           gain.gain.linearRampToValueAtTime(0.001, now + 6.0);
 
           osc.connect(filter);
@@ -382,7 +319,7 @@
           filter.Q.setValueAtTime(8, now);
 
           gain.gain.setValueAtTime(0.001, now);
-          gain.gain.linearRampToValueAtTime(this.isLevel2 ? 0.16 : 0.1, now + 0.3);
+          gain.gain.linearRampToValueAtTime(this.isLevel2 ? 0.18 : 0.12, now + 0.3);
           gain.gain.linearRampToValueAtTime(0.001, now + 2.0);
 
           osc.connect(filter);
@@ -395,14 +332,52 @@
           this.melodyInterval = setTimeout(playScaryMelody, (this.isLevel2 ? 1500 : 2500) + Math.random() * 2000);
         };
         playScaryMelody();
+
+        const playCicada = () => {
+          if (!this.isBgmPlaying || !this.ctx) return;
+          const now = this.ctx.currentTime;
+          const duration = 2.0 + Math.random() * 2.5;
+
+          const bufferSize = this.ctx.sampleRate * duration;
+          const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+          }
+
+          const noise = this.ctx.createBufferSource();
+          noise.buffer = buffer;
+
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = 'bandpass';
+          filter.frequency.setValueAtTime(this.isLevel2 ? 4500 : 5800, now);
+          filter.Q.setValueAtTime(20, now);
+
+          const gain = this.ctx.createGain();
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.linearRampToValueAtTime(this.isLevel2 ? 0.08 : 0.05, now + 0.3);
+          
+          for (let t = 0.3; t < duration - 0.3; t += 0.06) {
+            gain.gain.setValueAtTime(0.02 + Math.random() * (this.isLevel2 ? 0.08 : 0.05), now + t);
+          }
+          gain.gain.linearRampToValueAtTime(0.001, now + duration);
+
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.masterGain);
+
+          noise.start(now);
+          noise.stop(now + duration);
+
+          this.cicadaInterval = setTimeout(playCicada, (duration + 0.8 + Math.random() * 1.5) * 1000);
+        };
+        playCicada();
       }
       stopBGM() {
         this.isBgmPlaying = false;
         if (this.bgmInterval) clearTimeout(this.bgmInterval);
         if (this.melodyInterval) clearTimeout(this.melodyInterval);
-        if (this.proximityGain) {
-          this.proximityGain.gain.setValueAtTime(0, this.ctx.currentTime);
-        }
+        if (this.cicadaInterval) clearTimeout(this.cicadaInterval);
       }
       playHeartbeat() {
         if (!this.ctx) return;
@@ -495,6 +470,25 @@
 
           osc.start(now + n.t);
           osc.stop(now + n.t + n.d + 0.1);
+        });
+
+        const chimeFreqs = [1567.98, 2093.00, 2637.02, 3135.96];
+        chimeFreqs.forEach((cf, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(cf, now + 0.8 + idx * 0.15);
+
+          gain.gain.setValueAtTime(0.001, now + 0.8 + idx * 0.15);
+          gain.gain.linearRampToValueAtTime(0.12, now + 0.85 + idx * 0.15);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 1.8 + idx * 0.15);
+
+          osc.connect(gain);
+          gain.connect(this.masterGain);
+
+          osc.start(now + 0.8 + idx * 0.15);
+          osc.stop(now + 2.2 + idx * 0.15);
         });
       }
       playSE(freq, duration, type='sine') {
@@ -610,6 +604,13 @@
       ctx.lineWidth = 12;
       ctx.strokeRect(32, 32, 960, 960);
 
+      ctx.strokeStyle = isRed ? '#ff3333' : '#d4af37';
+      ctx.lineWidth = 8;
+      ctx.setLineDash([30, 20]);
+      ctx.beginPath(); ctx.moveTo(512, 64); ctx.lineTo(512, 960); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(64, 512); ctx.lineTo(960, 512); ctx.stroke();
+      ctx.setLineDash([]);
+
       const texture = new THREE.CanvasTexture(canvas);
       texture.wrapS = THREE.RepeatWrapping;
       texture.wrapT = THREE.RepeatWrapping;
@@ -675,6 +676,7 @@
       const isLv2 = (currentLevel === 2);
       const bldgMat = new THREE.MeshStandardMaterial({ color: isLv2 ? 0x220505 : 0x121418, roughness: 0.8 });
       const roofMat = new THREE.MeshStandardMaterial({ color: isLv2 ? 0x0d0202 : 0x08090c, roughness: 0.95 });
+      const windowMat = new THREE.MeshBasicMaterial({ color: isLv2 ? 0x550000 : 0x2e2310 });
 
       for (let z = -60; z <= 35; z += 18) {
         for (let x = -40; x <= 40; x += 22) {
@@ -690,6 +692,17 @@
           roof.position.set(x, h + 0.2, z);
           scene.add(roof);
           buildingMeshes.push(roof);
+
+          for (let wy = 2; wy < h - 1; wy += 2.5) {
+            for (let wx = -w/2 + 2; wx <= w/2 - 2; wx += 3) {
+              if (Math.random() > 0.6) {
+                const win = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.4), windowMat);
+                win.position.set(x + wx, wy, z + d/2 + 0.05);
+                scene.add(win);
+                buildingMeshes.push(win);
+              }
+            }
+          }
 
           buildingColliders.push({ minX: x - w/2 - 0.6, maxX: x + w/2 + 0.6, minZ: z - d/2 - 0.6, maxZ: z + d/2 + 0.6 });
           buildingRenderData.push({ x, z, w, d });
@@ -715,42 +728,11 @@
       return group;
     }
 
-    function createMemoMesh() {
-      const group = new THREE.Group();
-      const paperMat = new THREE.MeshStandardMaterial({ color: 0xddccaa, roughness: 0.8 });
-      const paper = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.02, 0.45), paperMat);
-      group.add(paper);
-      const lineMat = new THREE.MeshBasicMaterial({ color: 0x333333 });
-      const line = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.03, 0.05), lineMat);
-      line.position.set(0, 0.01, 0);
-      group.add(line);
-      return group;
-    }
-
     const keys = [];
-    const memoItems = [];
-    let collectedMemosCount = 0;
+    const batteries = [];
+    const firecrackerItems = [];
     let gateActivated = false;
     let fastMonsterSpawned = false;
-
-    const storyMemosData = [
-      {
-        title: "調査記録 壱：灰塵の谷の由来",
-        text: "『旧鉱山都市・記録抜粋』\nかつてこの地は、地下から湧き出る特殊な鉱石やエネルギー資源を利用して栄えた「灰塵の谷」という活気ある鉱山都市だった。\nしかし、富に目がくらんだ為政者たちが禁忌とされる地下深部を掘り進めた結果、地底に封印されていた古代の災厄――負の感情や環境の澱みが実体化した「モンスター」が地上へあふれ出した。"
-      },
-      {
-        title: "調査記録 弐：変貌した死の市",
-        text: "『廃墟の残骸にて発見』\n都市は瞬く間に破壊し尽くされ、人々が逃げ去ったあとの廃墟はいつしか「死の市」と呼ばれるようになった。近づく者のない呪われた地と化したこの場所で、かつての鉱山都市のインフラや中枢制御システムは今もなお深部で稼働し続けている。"
-      },
-      {
-        title: "調査記録 参：親友の手記",
-        text: "『親友の研究手記より』\n「谷の底にあるエネルギー源（遺産）を使えば、世界を覆う別の危機を解決できる」\n私はその強い確信から、周囲の反対を押し切り、たった一人でかつての死の市へと足を踏み入れた。\nもし私が戻らなければ、この先の中枢システムに眠る真実を探してほしい。"
-      },
-      {
-        title: "調査記録 肆：防衛マニュアルと爆竹の弱点",
-        text: "『現地調査の古い防衛記録』\nこの市に巣食うモンスターたちは、長年の暗闇と静寂の中で進化・適応したため、「特定の強烈な光・振動・高周波の音」に対して過敏な感覚器官を持つ。\n私たちが普段使うような「爆竹」の持つ特殊な火薬の炸裂音と閃光は、彼らの知覚神経を一時的にショートさせ、行動を完全にフリーズ（麻痺）させる最大の弱点となる。"
-      }
-    ];
 
     function getRandomSafePosition() {
       let pos = new THREE.Vector3();
@@ -787,616 +769,592 @@
     function spawnItems() {
       keys.forEach(k => scene.remove(k.mesh));
       keys.length = 0;
-      memoItems.forEach(m => scene.remove(m.mesh));
-      memoItems.length = 0;
-      collectedMemosCount = 0;
-      document.getElementById('memo-count').innerText = `0 / 4`;
+      gateActivated = false;
+      fastMonsterSpawned = false;
+      if (escapeGateMesh) escapeGateMesh.material.opacity = 0.0;
 
       for (let i = 0; i < 5; i++) {
         const pos = getRandomSafePosition();
         const mesh = createKeyMesh();
         mesh.position.copy(pos);
         scene.add(mesh);
-        keys.push({ mesh, collected: false });
+        keys.push({ mesh, pos, collected: false });
       }
 
+      function createBatteryMesh() {
+        const group = new THREE.Group();
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8, roughness: 0.3 });
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.32, 16), bodyMat);
+        body.position.y = 0.16; group.add(body);
+
+        const capMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9, roughness: 0.1 });
+        const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.06, 12), capMat);
+        cap.position.y = 0.33; group.add(cap);
+
+        const stripeMat = new THREE.MeshStandardMaterial({ color: currentLevel === 2 ? 0xff0000 : 0xffaa00, metalness: 0.6, roughness: 0.4 });
+        const stripe = new THREE.Mesh(new THREE.CylinderGeometry(0.102, 0.102, 0.1, 16), stripeMat);
+        stripe.position.y = 0.22; group.add(stripe);
+
+        group.rotation.z = Math.PI / 2;
+        return group;
+      }
+
+      batteries.forEach(b => scene.remove(b.mesh));
+      batteries.length = 0;
       for (let i = 0; i < 4; i++) {
         const pos = getRandomSafePosition();
-        const mesh = createMemoMesh();
-        mesh.position.copy(pos);
-        scene.add(mesh);
-        memoItems.push({ mesh, collected: false, index: i });
-      }
-    }
-
-    spawnItems();
-
-    class Monster {
-      constructor() {
-        this.mesh = new THREE.Group();
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x151518, roughness: 0.9, metalness: 0.1 });
-        const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0044 });
-
-        const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.25, 1.4, 8), bodyMat);
-        torso.position.y = 1.0;
-        this.mesh.add(torso);
-
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 8), bodyMat);
-        head.position.y = 1.8;
-        this.mesh.add(head);
-
-        const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), eyeMat);
-        eyeL.position.set(-0.12, 1.85, 0.28);
-        this.mesh.add(eyeL);
-
-        const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), eyeMat);
-        eyeR.position.set(0.12, 1.85, 0.28);
-        this.mesh.add(eyeR);
-
-        this.mesh.position.set(15, 0, -25);
-        scene.add(this.mesh);
-
-        this.speed = 0.045;
-        this.isStunned = false;
-        this.stunTimer = 0;
+        const mesh = createBatteryMesh();
+        mesh.position.copy(pos); scene.add(mesh);
+        batteries.push({ mesh, pos, collected: false });
       }
 
-      reset() {
+      function createFirecrackerMesh() {
+        const group = new THREE.Group();
+        const redMat = new THREE.MeshStandardMaterial({ color: 0xcc1111, roughness: 0.5 });
+        const fuseMat = new THREE.MeshBasicMaterial({ color: 0xddccaa });
+        const bandMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
+
+        const offsets = [{x: -0.06, z: -0.04}, {x: 0.06, z: -0.04}, {x: 0, z: 0.06}];
+        offsets.forEach(off => {
+          const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.28, 12), redMat);
+          stick.position.set(off.x, 0.14, off.z); group.add(stick);
+
+          const fuse = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.1, 8), fuseMat);
+          fuse.position.set(off.x, 0.31, off.z); fuse.rotation.z = (Math.random() - 0.5) * 0.4; group.add(fuse);
+        });
+
+        const band = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.05, 12), bandMat);
+        band.position.y = 0.14; group.add(band);
+
+        return group;
+      }
+
+      firecrackerItems.forEach(fc => scene.remove(fc.mesh));
+      firecrackerItems.length = 0;
+      for (let i = 0; i < 4; i++) {
         const pos = getRandomSafePosition();
-        this.mesh.position.copy(pos);
-        this.isStunned = false;
-        this.stunTimer = 0;
-      }
-
-      update(delta) {
-        if (this.isStunned) {
-          this.stunTimer -= delta;
-          if (this.stunTimer <= 0) {
-            this.isStunned = false;
-            showLog('モンスターの麻痺が解けた...！');
-          }
-          return;
-        }
-
-        const targetPos = player.position.clone();
-        targetPos.y = this.mesh.position.y;
-        
-        const dir = new THREE.Vector3().subVectors(targetPos, this.mesh.position);
-        const dist = dir.length();
-
-        let currentSpeed = this.speed * diffParams.speedMult;
-        if (currentLevel === 2) currentSpeed *= 1.25;
-
-        if (dist > 1.2) {
-          dir.normalize();
-          this.mesh.position.addScaledVector(dir, currentSpeed);
-          this.mesh.lookAt(targetPos);
-        }
-      }
-
-      stun() {
-        this.isStunned = true;
-        this.stunTimer = 6.0;
-        showLog('爆竹の閃光と破裂音でモンスターが完全に麻痺した！');
+        const mesh = createFirecrackerMesh();
+        mesh.position.copy(pos); scene.add(mesh);
+        firecrackerItems.push({ mesh, pos, collected: false });
       }
     }
 
-    const monster = new Monster();
-    const fastMonster = new Monster();
-    fastMonster.speed = 0.065;
-    fastMonster.mesh.position.set(-20, 0, 15);
+    function createScaryMonster(isFast = false) {
+      const group = new THREE.Group();
 
-    let stamina = 100;
-    let battery = 100;
-    let firecrackerCount = 2;
-    let keysCollected = 0;
-    let isGameOver = false;
-    let isGameClear = false;
-    let isPaused = false;
-    let isStoryMode = false;
-    let activeMemoIndex = -1;
+      const bodyMat = new THREE.MeshStandardMaterial({ color: currentLevel === 2 ? 0x3d0000 : 0x221111, roughness: 0.9, metalness: 0.1 });
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.35, 3.6, 8), bodyMat);
+      body.position.y = 1.8; group.add(body);
 
-    const keyState = { w: false, a: false, s: false, d: false, shift: false };
-
-    window.addEventListener('keydown', (e) => {
-      if (e.code === 'KeyW' || e.code === 'ArrowUp') keyState.w = true;
-      if (e.code === 'KeyS' || e.code === 'ArrowDown') keyState.s = true;
-      if (e.code === 'KeyA' || e.code === 'ArrowLeft') keyState.a = true;
-      if (e.code === 'KeyD' || e.code === 'ArrowRight') keyState.d = true;
-      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') keyState.shift = true;
-
-      if (e.code === 'KeyE') {
-        checkInteraction();
+      const ribMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.5 });
+      for (let i = 0; i < 4; i++) {
+        const rib = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.06, 0.2), ribMat);
+        rib.position.set(0, 1.2 + i * 0.4, 0.1);
+        group.add(rib);
       }
-      if (e.code === 'KeyM') {
-        const collectedList = memoItems.filter(m => m.collected);
-        if (collectedList.length > 0) {
-          openMemoModal(collectedList[collectedList.length - 1].index);
+
+      const headMat = new THREE.MeshStandardMaterial({ color: 0x180808, roughness: 0.8 });
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 12, 12), headMat);
+      head.position.y = 3.6; head.scale.set(0.85, 1.5, 1.1); group.add(head);
+
+      const mouthMat = new THREE.MeshBasicMaterial({ color: 0x330000 });
+      const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.15, 0.3), mouthMat);
+      mouth.position.set(0, 3.35, 0.35); group.add(mouth);
+
+      const eyeMat = new THREE.MeshBasicMaterial({ color: currentLevel === 2 ? 0x00ffff : (isFast ? 0xffaa00 : 0xff0000) });
+      for (let i = -1; i <= 1; i += 2) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), eyeMat);
+        eye.position.set(i * 0.22, 3.75, 0.38); group.add(eye);
+        const eyeSub = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), eyeMat);
+        eyeSub.position.set(i * 0.12, 3.9, 0.35); group.add(eyeSub);
+      }
+
+      const lightColor = currentLevel === 2 ? 0xff0055 : (isFast ? 0xff6600 : 0xff0000);
+      const monsterLight = new THREE.PointLight(lightColor, 2.5, 8);
+      monsterLight.position.set(0, 3.5, 0); group.add(monsterLight);
+
+      scene.add(group);
+      
+      let baseSpd = isFast ? 4.8 : 2.4;
+      if (currentLevel === 2) baseSpd *= 2.0;
+
+      return { 
+        group, 
+        pos: group.position, 
+        isStunned: false, 
+        stunTimer: 0, 
+        isFast: isFast,
+        baseSpeed: baseSpd
+      };
+    }
+
+    let monsters = [ createScaryMonster(false), createScaryMonster(false) ];
+
+    function setupEnvironmentForLevel(lvl) {
+      currentLevel = lvl;
+      document.getElementById('stage-name-hud').textContent = `Lv.${lvl}`;
+      if (lvl === 2) {
+        scene.background = new THREE.Color(0x120202);
+        scene.fog = new THREE.FogExp2(0x120202, 0.025);
+        floor.material.map = redAsphaltTex;
+        floor.material.needsUpdate = true;
+        moonMat.color.setHex(0xff0000);
+        redMoonLight.color.setHex(0xff0000);
+      } else {
+        scene.background = new THREE.Color(0x040608);
+        scene.fog = new THREE.FogExp2(0x040608, 0.020);
+        floor.material.map = asphaltTex;
+        floor.material.needsUpdate = true;
+        moonMat.color.setHex(0xff2222);
+        redMoonLight.color.setHex(0xff3333);
+      }
+      buildCity();
+      createTorii();
+    }
+
+    let isPlaying = false, isPaused = false, isChanceTime = false;
+    let stamina = 100, battery = 100, firecrackers = 0;
+    let isSprinting = false;
+    let keysCount = 0;
+    let revealEnemiesTimer = 0;
+    let nearbyItemAction = null;
+
+    let moveF = false, moveB = false, moveL = false, moveR = false;
+
+    function triggerChanceTime() {
+      isChanceTime = true;
+      document.exitPointerLock();
+      document.getElementById('chance-result').textContent = '';
+      document.getElementById('chance-screen').style.display = 'flex';
+    }
+
+    window.selectChanceBox = function(idx) {
+      const options = [
+        { text: "🎆 爆竹を2個獲得！", act: () => { firecrackers += 2; updateUI(); } },
+        { text: "📡 敵の位置を10秒間可視化！", act: () => { revealEnemiesTimer = 10.0; } },
+        { text: "🔋 バッテリー全回復！", act: () => { battery = 100; } },
+        { text: "⚠️ ハズレ！モンスターが至近距離に！", act: () => { monsters[0].pos.set(player.position.x + 3, 0, player.position.z + 3); } }
+      ];
+      const res = options[Math.floor(Math.random() * options.length)];
+      document.getElementById('chance-result').textContent = res.text;
+      res.act();
+      setTimeout(() => {
+        document.getElementById('chance-screen').style.display = 'none';
+        isChanceTime = false;
+        document.body.requestPointerLock();
+      }, 1500);
+    };
+
+    function showMsg(txt) {
+      const log = document.getElementById('message-log');
+      log.textContent = txt; log.style.opacity = '1';
+      setTimeout(() => { log.style.opacity = '0'; }, 2500);
+    }
+
+    function updateUI() {
+      document.getElementById('key-count').textContent = `${keysCount} / 5`;
+      document.getElementById('firecracker-count').textContent = firecrackers;
+      document.getElementById('stamina-bar').style.width = `${stamina}%`;
+      document.getElementById('battery-bar').style.width = `${battery}%`;
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'KeyW') moveF = true;
+      if (e.code === 'KeyS') moveB = true;
+      if (e.code === 'KeyA') moveL = true;
+      if (e.code === 'KeyD') moveR = true;
+      if (e.code === 'ShiftLeft') isSprinting = true;
+      if (e.code === 'KeyE') {
+        if (nearbyItemAction) {
+          nearbyItemAction();
+          nearbyItemAction = null;
+          document.getElementById('interact-prompt').style.display = 'none';
         }
       }
       if (e.code === 'KeyF') {
-        useFirecracker();
-      }
-      if (e.code === 'Escape') {
-        if (isStoryMode) return;
-        const optionsScreen = document.getElementById('options-screen');
-        if (optionsScreen.style.display === 'flex') {
-          closeOptions();
-          return;
-        }
-        const memoModal = document.getElementById('memo-modal');
-        if (memoModal.style.display === 'flex') {
-          closeMemoModal();
-          return;
-        }
-        if (isPaused) {
-          resumeGame();
+        if (firecrackers > 0) {
+          firecrackers--;
+          updateUI();
+          showMsg("爆竹を使用！爆音で怪物たちが麻痺！");
+          audio.playSE(900, 0.5, 'sawtooth');
+          monsters.forEach(m => { m.isStunned = true; m.stunTimer = 6.0; });
         } else {
-          pauseGame();
+          showMsg("爆竹を持っていません！");
         }
       }
+      if (e.code === 'Escape') togglePause();
     });
 
-    window.addEventListener('keyup', (e) => {
-      if (e.code === 'KeyW' || e.code === 'ArrowUp') keyState.w = false;
-      if (e.code === 'KeyS' || e.code === 'ArrowDown') keyState.s = false;
-      if (e.code === 'KeyA' || e.code === 'ArrowLeft') keyState.a = false;
-      if (e.code === 'KeyD' || e.code === 'ArrowRight') keyState.d = false;
-      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') keyState.shift = false;
+    document.addEventListener('keyup', (e) => {
+      if (e.code === 'KeyW') moveF = false;
+      if (e.code === 'KeyS') moveB = false;
+      if (e.code === 'KeyA') moveL = false;
+      if (e.code === 'KeyD') moveR = false;
+      if (e.code === 'ShiftLeft') isSprinting = false;
     });
 
-    let isPointerLocked = false;
-    const canvasElement = renderer.domElement;
-
-    canvasElement.addEventListener('click', () => {
-      if (!isPaused && !isGameOver && !isGameClear && !isStoryMode && document.getElementById('options-screen').style.display !== 'flex' && document.getElementById('memo-modal').style.display !== 'flex') {
-        canvasElement.requestPointerLock();
-      }
-    });
-
-    document.addEventListener('pointerlockchange', () => {
-      isPointerLocked = (document.pointerLockElement === canvasElement);
-    });
-
-    let euler = new THREE.Euler(0, 0, 0, 'YXZ');
     document.addEventListener('mousemove', (e) => {
-      if (!isPointerLocked || isPaused || isGameOver || isGameClear || isStoryMode) return;
-      const movementX = e.movementX || e.mozMovementX || e.webkitMovementX || 0;
-      const movementY = e.movementY || e.mozMovementY || e.webkitMovementY || 0;
-
-      euler.y -= movementX * mouseSensitivity;
-      euler.x -= movementY * mouseSensitivity;
-      euler.x = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, euler.x));
-      camera.quaternion.setFromEuler(euler);
+      if (!isPlaying || isPaused || isChanceTime) return;
+      player.rotation.y -= e.movementX * mouseSensitivity;
+      camera.rotation.x -= e.movementY * mouseSensitivity;
+      camera.rotation.x = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, camera.rotation.x));
     });
 
-    function showLog(text) {
-      const log = document.getElementById('message-log');
-      log.innerText = text;
-      log.style.opacity = '1';
-      setTimeout(() => { log.style.opacity = '0'; }, 3500);
-    }
-
-    function useFirecracker() {
-      if (firecrackerCount <= 0) {
-        showLog('爆竹の持ち合わせがない！');
-        return;
-      }
-      firecrackerCount--;
-      document.getElementById('firecracker-count').innerText = firecrackerCount;
-      audio.playSE(600, 0.4, 'sawtooth');
-      showLog('🧨 爆竹を投げた！モンスターの神経が眩い閃光と破裂音で引き裂かれる！');
-
-      const pPos = player.position;
-      if (monster.mesh.position.distanceTo(pPos) < 18) monster.stun();
-      if (fastMonster.mesh.position.distanceTo(pPos) < 18) fastMonster.stun();
-    }
-
-    function checkInteraction() {
-      const memoModal = document.getElementById('memo-modal');
-      if (memoModal.style.display === 'flex') {
-        closeMemoModal();
-        return;
-      }
-
-      const pPos = player.position;
-
-      for (let i = 0; i < keys.length; i++) {
-        const k = keys[i];
-        if (!k.collected && k.mesh.position.distanceTo(pPos) < 2.5) {
-          k.collected = true;
-          scene.remove(k.mesh);
-          keysCollected++;
-          document.getElementById('key-count').innerText = `${keysCollected} / 5`;
-          audio.playSE(880, 0.2);
-          showLog('🔐 「認証の鍵」を回収した！');
-
-          if (keysCollected >= 5 && !gateActivated) {
-            gateActivated = true;
-            if (escapeGateMesh) escapeGateMesh.material.opacity = 0.85;
-            showLog('⚡ 5つの鍵が揃った！朱い鳥居のセキュリティ中枢が解放された！');
-            audio.playClearFanfare();
-          }
-          return;
-        }
-      }
-
-      for (let i = 0; i < memoItems.length; i++) {
-        const m = memoItems[i];
-        if (!m.collected && m.mesh.position.distanceTo(pPos) < 2.5) {
-          m.collected = true;
-          scene.remove(m.mesh);
-          collectedMemosCount++;
-          document.getElementById('memo-count').innerText = `${collectedMemosCount} / 4`;
-          audio.playSE(740, 0.25);
-          showLog('📄 「調査記録」を発見した！ [M]キーでいつでも読み返せます');
-          openMemoModal(m.index);
-          return;
-        }
-      }
-
-      if (pPos.distanceTo(toriiPosition) < 3.0) {
-        if (keysCollected >= 5) {
-          if (currentLevel === 1) {
-            triggerNextStagePrompt();
-          } else {
-            triggerGameClear();
-          }
-        } else {
-          showLog('🔒 セキュリティがロックされています。「認証の鍵」があと ' + (5 - keysCollected) + ' 個必要です。');
-        }
+    function togglePause() {
+      if (!isPlaying || isChanceTime) return;
+      isPaused = !isPaused;
+      document.getElementById('pause-menu').style.display = isPaused ? 'flex' : 'none';
+      if (isPaused) {
+        document.exitPointerLock();
+        audio.stopBGM();
+      } else {
+        document.body.requestPointerLock();
+        audio.startBGM(currentLevel === 2);
       }
     }
+    document.getElementById('resume-btn').onclick = togglePause;
 
-    function openMemoModal(index) {
-      activeMemoIndex = index;
-      const memo = storyMemosData[index];
-      document.getElementById('memo-modal-title').innerText = memo.title;
-      document.getElementById('memo-modal-body').innerText = memo.text;
-      document.getElementById('memo-modal').style.display = 'flex';
-      if (document.pointerLockElement) document.exitPointerLock();
-    }
-
-    function closeMemoModal() {
-      document.getElementById('memo-modal').style.display = 'none';
-      activeMemoIndex = -1;
-    }
-
-    const storyIntroSteps = [
-      "かつては多くの命とエネルギーで栄えた鉱山都市『灰塵の谷』。\nしかし、深部からの環境澱みとモンスターの氾濫により、都市は瞬く間に滅ぼされ、いつしか『死の市』と呼ばれる禁忌の廃墟と化した。",
-      "「谷の底にある遺産を使えば、世界を覆う別の危機を解決できる」\nその強い信念を胸に、周囲の反対を押し切って単身この呪われた地へ足を踏み入れた親友。",
-      "連絡が途絶えた親友を追い、あなたもまた朱い鳥居をくぐり、闇に包まれた管理中枢へと足を踏み入れる――。",
-      "迷宮と化した死の市に散らばる「5つの認証の鍵」を集め、管理中枢のセキュリティを解除して、親友の足跡と真実を掴み取れ。"
-    ];
-    let currentStoryStep = 0;
-
-    function startStoryIntro() {
+    function startGame() {
+      setupEnvironmentForLevel(1);
+      isPlaying = true; isPaused = false; keysCount = 0; stamina = 100; battery = 100; playTime = 0;
       document.getElementById('title-screen').style.display = 'none';
-      document.getElementById('story-intro-screen').style.display = 'flex';
-      currentStoryStep = 0;
-      showStoryStep();
-    }
-
-    function showStoryStep() {
-      document.getElementById('story-intro-text').innerText = storyIntroSteps[currentStoryStep];
-      const btn = document.getElementById('story-next-btn');
-      if (currentStoryStep === storyIntroSteps.length - 1) {
-        btn.innerText = "死 の 市 へ 潜 入 す る";
-      } else {
-        btn.innerText = "次 へ";
-      }
-    }
-
-    function nextStoryIntro() {
-      currentStoryStep++;
-      if (currentStoryStep >= storyIntroSteps.length) {
-        document.getElementById('story-intro-screen').style.display = 'none';
-        initGame();
-      } else {
-        showStoryStep();
-      }
-    }
-
-    function initGame() {
-      isStoryMode = false;
       document.getElementById('ui').style.display = 'block';
       document.getElementById('crosshair').style.display = 'block';
       document.getElementById('minimap-container').style.display = 'block';
-
-      player.position.set(0, 1.6, 6);
-      euler.set(0, 0, 0);
-      camera.quaternion.setFromEuler(euler);
-
-      keysCollected = 0;
-      collectedMemosCount = 0;
-      gateActivated = false;
-      fastMonsterSpawned = false;
-      firecrackerCount = (difficulty === 'easy' ? 4 : (difficulty === 'normal' ? 2 : 1));
-      document.getElementById('key-count').innerText = `0 / 5`;
-      document.getElementById('memo-count').innerText = `0 / 4`;
-      document.getElementById('firecracker-count').innerText = firecrackerCount;
-      if (escapeGateMesh) escapeGateMesh.material.opacity = 0.0;
-
+      document.body.requestPointerLock();
+      audio.startBGM(false);
+      spawnMonsters();
       spawnItems();
-      monster.reset();
-      fastMonster.reset();
 
-      playTime = 0;
       if (timerInterval) clearInterval(timerInterval);
       timerInterval = setInterval(() => {
-        if (!isPaused && !isGameOver && !isGameClear) {
+        if (isPlaying && !isPaused) {
           playTime++;
-          const m = String(Math.floor(playTime / 60)).padStart(2, '0');
-          const s = String(playTime % 60).padStart(2, '0');
-          document.getElementById('timer-display').innerText = `${m}:${s}`;
+          const mins = String(Math.floor(playTime / 60)).padStart(2, '0');
+          const secs = String(playTime % 60).padStart(2, '0');
+          document.getElementById('timer-display').textContent = `${mins}:${secs}`;
         }
       }, 1000);
+    }
+    document.getElementById('start-btn').onclick = startGame;
 
-      audio.startBGM(currentLevel === 2);
-      canvasElement.requestPointerLock();
+    function spawnMonsters() {
+      monsters.forEach(m => scene.remove(m.group));
+      monsters.length = 0;
+      monsters.push(createScaryMonster(false));
+      monsters.push(createScaryMonster(false));
+      monsters[0].pos.set(-25, 0, -25);
+      monsters[1].pos.set(25, 0, -25);
     }
 
-    function pauseGame() {
-      isPaused = true;
-      document.getElementById('pause-menu').style.display = 'flex';
-      if (document.pointerLockElement) document.exitPointerLock();
-    }
-
-    document.getElementById('resume-btn').onclick = resumeGame;
-
-    function resumeGame() {
+    window.startLevel2 = function() {
+      document.getElementById('next-stage-overlay').style.display = 'none';
+      setupEnvironmentForLevel(2);
+      keysCount = 0;
+      stamina = 100;
+      battery = 100;
+      firecrackers = Math.max(0, firecrackers);
+      isPlaying = true;
       isPaused = false;
-      document.getElementById('pause-menu').style.display = 'none';
-      canvasElement.requestPointerLock();
-    }
+      document.body.requestPointerLock();
+      audio.startBGM(true);
+      spawnMonsters();
+      spawnItems();
+      showMsg("Lv.2 へ突入：難易度倍増・スタミナ制限なし");
+    };
 
     function returnToTitle() {
-      isPaused = false;
-      isGameOver = false;
-      isGameClear = false;
+      isPlaying = false; isPaused = false; isChanceTime = false; currentLevel = 1;
+      document.exitPointerLock();
+      audio.stopBGM();
+      if (timerInterval) clearInterval(timerInterval);
+      document.getElementById('title-screen').style.display = 'flex';
       document.getElementById('pause-menu').style.display = 'none';
+      document.getElementById('options-screen').style.display = 'none';
       document.getElementById('gameover-overlay').style.display = 'none';
       document.getElementById('clear-overlay').style.display = 'none';
       document.getElementById('next-stage-overlay').style.display = 'none';
       document.getElementById('ui').style.display = 'none';
       document.getElementById('crosshair').style.display = 'none';
       document.getElementById('minimap-container').style.display = 'none';
-      document.getElementById('title-screen').style.display = 'flex';
-      audio.stopBGM();
-      if (timerInterval) clearInterval(timerInterval);
-      if (document.pointerLockElement) document.exitPointerLock();
+      player.position.set(0, 1.6, 1);
+      player.rotation.set(0, 0, 0);
+      camera.rotation.set(0, 0, 0);
+      setupEnvironmentForLevel(1);
     }
 
-    function triggerJumpscare() {
-      if (isGameOver) return;
-      isGameOver = true;
+    function triggerGameOver() {
+      isPlaying = false;
+      document.exitPointerLock();
       audio.stopBGM();
-      audio.playJumpscareScream();
-      document.getElementById('jumpscare-overlay').style.display = 'flex';
-      if (document.pointerLockElement) document.exitPointerLock();
+      if (timerInterval) clearInterval(timerInterval);
 
+      audio.playJumpscareScream();
+
+      document.getElementById('jumpscare-overlay').style.display = 'flex';
       setTimeout(() => {
         document.getElementById('jumpscare-overlay').style.display = 'none';
         document.getElementById('gameover-overlay').style.display = 'flex';
-      }, 1400);
+      }, 1200);
     }
 
-    function triggerNextStagePrompt() {
-      isPaused = true;
-      if (document.pointerLockElement) document.exitPointerLock();
-      document.getElementById('next-stage-title').innerText = "Lv.1 管理中枢 解除完了";
-      document.getElementById('next-stage-desc').innerText = "より深い澱みが渦巻く『最深部 (Lv.2)』へ進みますか？";
-      document.getElementById('next-stage-overlay').style.display = 'flex';
-      audio.playClearFanfare();
-    }
+    function triggerClear() {
+      if (currentLevel === 1) {
+        isPlaying = false;
+        document.exitPointerLock();
+        audio.stopBGM();
+        audio.playClearFanfare();
+        document.getElementById('next-stage-overlay').style.display = 'flex';
+      } else {
+        isPlaying = false;
+        document.exitPointerLock();
+        audio.stopBGM();
+        if (timerInterval) clearInterval(timerInterval);
 
-    function startLevel2() {
-      currentLevel = 2;
-      document.getElementById('next-stage-overlay').style.display = 'none';
-      document.getElementById('stage-name-hud').innerText = "Lv.2 最深部";
-      floor.material.map = redAsphaltTex;
-      floor.material.needsUpdate = true;
-      scene.background = new THREE.Color(0x0a0202);
-      scene.fog.color = new THREE.Color(0x0a0202);
-      createTorii();
-      buildCity();
-      initGame();
-    }
+        audio.playClearFanfare();
 
-    function triggerGameClear() {
-      if (isGameClear) return;
-      isGameClear = true;
-      audio.stopBGM();
-      audio.playClearFanfare();
-      if (document.pointerLockElement) document.exitPointerLock();
-
-      const m = Math.floor(playTime / 60);
-      const s = playTime % 60;
-      const timeStr = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-      document.getElementById('clear-time-text').innerText = `TIME: ${timeStr}`;
-
-      let rank = 'S';
-      if (playTime > 180) rank = 'A';
-      if (playTime > 300) rank = 'B';
-      document.getElementById('clear-rank').innerText = `RANK: ${rank}`;
-      document.getElementById('clear-story-summary').innerText = `すべての調査記録を集め、親友の足跡を辿って死の市から生還した！`;
-
-      document.getElementById('clear-overlay').style.display = 'flex';
+        const mins = Math.floor(playTime / 60);
+        const secs = playTime % 60;
+        document.getElementById('clear-time-text').textContent = `TIME: ${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        let rank = 'S+';
+        if (playTime > 200) rank = 'S';
+        if (playTime > 350) rank = 'A';
+        document.getElementById('clear-rank').textContent = `RANK: ${rank}`;
+        document.getElementById('clear-overlay').style.display = 'flex';
+      }
     }
 
     const minimapCanvas = document.getElementById('minimap-canvas');
-    const mmCtx = minimapCanvas.getContext('2d');
+    const minimapCtx = minimapCanvas.getContext('2d');
 
-    function drawMinimap() {
-      mmCtx.clearRect(0, 0, 160, 160);
-      mmCtx.fillStyle = 'rgba(10, 5, 5, 0.9)';
-      mmCtx.fillRect(0, 0, 160, 160);
+    function updateMinimap() {
+      minimapCtx.clearRect(0, 0, 160, 160);
+      minimapCtx.save();
+      minimapCtx.translate(80, 80);
+      minimapCtx.rotate(-player.rotation.y);
 
-      const scale = 1.6;
-      const centerX = 80;
-      const centerY = 80;
+      minimapCtx.fillStyle = currentLevel === 2 ? '#1a0505' : '#0a0a12';
+      minimapCtx.beginPath();
+      minimapCtx.arc(0, 0, 80, 0, Math.PI * 2);
+      minimapCtx.fill();
 
-      mmCtx.fillStyle = '#222933';
+      const scale = 2.0;
+
+      minimapCtx.fillStyle = currentLevel === 2 ? '#330c0c' : '#1c222d';
       buildingRenderData.forEach(b => {
-        const bx = centerX + (b.x - player.position.x) * scale;
-        const bz = centerY + (b.z - player.position.z) * scale;
-        mmCtx.fillRect(bx - (b.w * scale)/2, bz - (b.d * scale)/2, b.w * scale, b.d * scale);
+        const dx = (b.x - player.position.x) * scale;
+        const dz = (b.z - player.position.z) * scale;
+        minimapCtx.fillRect(dx - (b.w * scale)/2, dz - (b.d * scale)/2, b.w * scale, b.d * scale);
       });
+
+      const tx = (toriiPosition.x - player.position.x) * scale;
+      const tz = (toriiPosition.z - player.position.z) * scale;
+      minimapCtx.fillStyle = gateActivated ? (currentLevel === 2 ? '#ff0055' : '#00ffff') : '#ff3300';
+      minimapCtx.beginPath(); minimapCtx.arc(tx, tz, 6, 0, Math.PI * 2); minimapCtx.fill();
 
       keys.forEach(k => {
         if (!k.collected) {
-          const kx = centerX + (k.mesh.position.x - player.position.x) * scale;
-          const kz = centerY + (k.mesh.position.z - player.position.z) * scale;
-          mmCtx.fillStyle = '#ffcc00';
-          mmCtx.beginPath(); mmCtx.arc(kx, kz, 3, 0, Math.PI * 2); mmCtx.fill();
+          const kx = (k.pos.x - player.position.x) * scale;
+          const kz = (k.pos.z - player.position.z) * scale;
+          minimapCtx.fillStyle = currentLevel === 2 ? '#ff3333' : '#ffcc00';
+          minimapCtx.beginPath(); minimapCtx.arc(kx, kz, 4, 0, Math.PI * 2); minimapCtx.fill();
         }
       });
 
-      memoItems.forEach(m => {
-        if (!m.collected) {
-          const mx = centerX + (m.mesh.position.x - player.position.x) * scale;
-          const mz = centerY + (m.mesh.position.z - player.position.z) * scale;
-          mmCtx.fillStyle = '#00ff88';
-          mmCtx.fillRect(mx - 2, mz - 2, 4, 4);
-        }
+      monsters.forEach(m => {
+        const mx = (m.pos.x - player.position.x) * scale;
+        const mz = (m.pos.z - player.position.z) * scale;
+        minimapCtx.fillStyle = currentLevel === 2 ? '#00ffff' : (m.isFast ? '#ff6600' : '#ff0000');
+        minimapCtx.beginPath(); minimapCtx.arc(mx, mz, m.isFast ? 6 : 5, 0, Math.PI * 2); minimapCtx.fill();
       });
 
-      const mx = centerX + (monster.mesh.position.x - player.position.x) * scale;
-      const mz = centerY + (monster.mesh.position.z - player.position.z) * scale;
-      mmCtx.fillStyle = '#ff0044';
-      mmCtx.beginPath(); mmCtx.arc(mx, mz, 4, 0, Math.PI * 2); mmCtx.fill();
+      minimapCtx.restore();
 
-      if (currentLevel === 2 || fastMonsterSpawned) {
-        const fmx = centerX + (fastMonster.mesh.position.x - player.position.x) * scale;
-        const fmz = centerY + (fastMonster.mesh.position.z - player.position.z) * scale;
-        mmCtx.fillStyle = '#ff3300';
-        mmCtx.beginPath(); mmCtx.arc(fmx, fmz, 4, 0, Math.PI * 2); mmCtx.fill();
-      }
-
-      mmCtx.fillStyle = '#ffffff';
-      mmCtx.beginPath(); mmCtx.arc(centerX, centerY, 4, 0, Math.PI * 2); mmCtx.fill();
+      minimapCtx.fillStyle = '#00ff88';
+      minimapCtx.beginPath(); minimapCtx.arc(80, 80, 5, 0, Math.PI * 2); minimapCtx.fill();
     }
 
-    let clock = new THREE.Clock();
-
+    const clock = new THREE.Clock();
     function animate() {
       requestAnimationFrame(animate);
-
       const delta = clock.getDelta();
 
-      if (!isPaused && !isGameOver && !isGameClear && document.getElementById('ui').style.display !== 'none') {
-        const moveSpeed = keyState.shift ? 7.5 : 4.5;
-        const actualMoveSpeed = moveSpeed * (stamina <= 10 ? 0.7 : 1.0);
+      if (isPlaying && !isPaused && !isChanceTime) {
+        if (battery > 0) {
+          battery -= delta * 0.4;
+          if (battery < 0) battery = 0;
+          flashlight.intensity = (battery / 100) * 4.5;
+        } else {
+          flashlight.intensity = 0.2;
+        }
 
-        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-        forward.y = 0; forward.normalize();
-        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-        right.y = 0; right.normalize();
+        const isMoving = moveF || moveB || moveL || moveR;
+        
+        if (currentLevel === 1) {
+          if (isSprinting && isMoving && stamina > 0) {
+            stamina -= delta * 35;
+            if (stamina < 0) stamina = 0;
+          } else {
+            stamina += delta * 18;
+            if (stamina > 100) stamina = 100;
+          }
+        } else {
+          stamina = 100;
+        }
 
-        let moveDir = new THREE.Vector3();
-        if (keyState.w) moveDir.add(forward);
-        if (keyState.s) moveDir.sub(forward);
-        if (keyState.a) moveDir.sub(right);
-        if (keyState.d) moveDir.add(right);
+        updateUI();
+
+        let speed = 4.2;
+        if (isSprinting && isMoving && (currentLevel === 2 || stamina > 0)) speed = 6.8;
+
+        const moveDir = new THREE.Vector3();
+        const camDir = new THREE.Vector3();
+        camera.getWorldDirection(camDir);
+        camDir.y = 0; camDir.normalize();
+        const sideDir = new THREE.Vector3(-camDir.z, 0, camDir.x);
+
+        if (moveF) moveDir.add(camDir);
+        if (moveB) moveDir.sub(camDir);
+        if (moveL) moveDir.sub(sideDir);
+        if (moveR) moveDir.add(sideDir);
         moveDir.normalize();
 
-        if (moveDir.length() > 0) {
-          if (keyState.shift) {
-            stamina = Math.max(0, stamina - delta * 30);
-          } else {
-            stamina = Math.min(100, stamina + delta * 20);
+        const nextX = player.position.x + moveDir.x * speed * delta;
+        const nextZ = player.position.z + moveDir.z * speed * delta;
+
+        let collides = false;
+        const pRadius = 0.4;
+        buildingColliders.forEach(b => {
+          if (nextX + pRadius > b.minX && nextX - pRadius < b.maxX &&
+              nextZ + pRadius > b.minZ && nextZ - pRadius < b.maxZ) {
+            collides = true;
           }
-        } else {
-          stamina = Math.min(100, stamina + delta * 25);
+        });
+
+        if (!collides) {
+          player.position.x = Math.max(MAP_LIMIT.minX, Math.min(MAP_LIMIT.maxX, nextX));
+          player.position.z = Math.max(MAP_LIMIT.minZ, Math.min(MAP_LIMIT.maxZ, nextZ));
         }
-        document.getElementById('stamina-bar').style.width = `${stamina}%`;
 
-        battery = Math.max(0, battery - delta * 0.4);
-        document.getElementById('battery-bar').style.width = `${battery}%`;
-        flashlight.intensity = 4.5 * (battery / 100);
+        let foundPrompt = false;
+        nearbyItemAction = null;
 
-        const nextPos = player.position.clone().addScaledVector(moveDir, actualMoveSpeed * delta);
-        
-        nextPos.x = Math.max(MAP_LIMIT.minX, Math.min(MAP_LIMIT.maxX, nextPos.x));
-        nextPos.z = Math.max(MAP_LIMIT.minZ, Math.min(MAP_LIMIT.maxZ, nextPos.z));
+        keys.forEach(k => {
+          if (!k.collected && player.position.distanceTo(k.pos) < 2.0) {
+            foundPrompt = true;
+            document.getElementById('interact-prompt').textContent = '[E] 鍵を拾う';
+            nearbyItemAction = () => {
+              k.collected = true;
+              scene.remove(k.mesh);
+              keysCount++;
+              updateUI();
+              showMsg("『鍵』を手に入れた！");
+              audio.playSE(1200, 0.3, 'sine');
 
-        let collided = false;
-        for (let b of buildingColliders) {
-          if (nextPos.x > b.minX && nextPos.x < b.maxX && nextPos.z > b.minZ && nextPos.z < b.maxZ) {
-            collided = true;
-            break;
+              if (keysCount === 4 && !fastMonsterSpawned) {
+                fastMonsterSpawned = true;
+                const fastMonster = createScaryMonster(true);
+                fastMonster.pos.set(player.position.x + 15, 0, player.position.z - 15);
+                monsters.push(fastMonster);
+                showMsg("警告：さらに凶悪な追跡者が現れた！");
+                audio.playSE(400, 0.8, 'sawtooth');
+              }
+
+              if (keysCount === 5) {
+                gateActivated = true;
+                showMsg("鳥居に脱出ゲートが出現した！鳥居へ向かえ！");
+                audio.playSE(1500, 0.6, 'triangle');
+              }
+
+              if (keysCount === 3 && Math.random() > 0.3) {
+                triggerChanceTime();
+              }
+            };
           }
-        }
+        });
 
-        if (!collided) {
-          player.position.copy(nextPos);
-        }
-
-        monster.update(delta);
-        if (currentLevel === 2 || keysCollected >= 3) {
-          fastMonster.update(delta);
-          fastMonsterSpawned = true;
-        }
-
-        // モンスターとの距離計算＆接近BGMの音量連動
-        const pPos = player.position;
-        const dist1 = monster.mesh.position.distanceTo(pPos);
-        const dist2 = fastMonsterSpawned ? fastMonster.mesh.position.distanceTo(pPos) : 999;
-        const minDist = Math.min(dist1, dist2);
-
-        audio.updateProximityBGM(minDist);
-
-        // 警戒度UIの更新
-        const indicator = document.getElementById('danger-indicator');
-        if (minDist < 6) {
-          indicator.innerText = "警戒度: 危険（至近距離！）";
-          indicator.style.color = "#ff0000";
-        } else if (minDist < 12) {
-          indicator.innerText = "警戒度: 接近中";
-          indicator.style.color = "#ff8800";
-        } else if (minDist < 20) {
-          indicator.innerText = "警戒度: 気配あり";
-          indicator.style.color = "#ffcc00";
-        } else {
-          indicator.innerText = "警戒度: 平穏";
-          indicator.style.color = "#00ff88";
-        }
-
-        const detectDist = 1.4 * diffParams.detectMult;
-        if (dist1 < detectDist || (fastMonsterSpawned && dist2 < detectDist)) {
-          triggerJumpscare();
-        }
-
-        if (minDist < 12) {
-          if (Math.random() < delta * (14 / (minDist + 1))) {
-            audio.playHeartbeat();
+        batteries.forEach(b => {
+          if (!b.collected && player.position.distanceTo(b.pos) < 2.0) {
+            foundPrompt = true;
+            document.getElementById('interact-prompt').textContent = '[E] バッテリーを拾う';
+            nearbyItemAction = () => {
+              b.collected = true;
+              scene.remove(b.mesh);
+              battery = Math.min(100, battery + 35);
+              updateUI();
+              showMsg("バッテリーを回収した！");
+              audio.playSE(800, 0.2, 'triangle');
+            };
           }
+        });
+
+        firecrackerItems.forEach(fc => {
+          if (!fc.collected && player.position.distanceTo(fc.pos) < 2.0) {
+            foundPrompt = true;
+            document.getElementById('interact-prompt').textContent = '[E] 爆竹を拾う';
+            nearbyItemAction = () => {
+              fc.collected = true;
+              scene.remove(fc.mesh);
+              firecrackers++;
+              updateUI();
+              showMsg("爆竹を手に入れた！ [F]で投擲");
+              audio.playSE(600, 0.2, 'square');
+            };
+          }
+        });
+
+        if (gateActivated && player.position.distanceTo(toriiPosition) < 3.0) {
+          triggerClear();
         }
 
-        let showPrompt = false;
-        for (let k of keys) {
-          if (!k.collected && k.mesh.position.distanceTo(pPos) < 2.5) { showPrompt = true; break; }
+        if (gateActivated && escapeGateMesh) {
+          escapeGateMesh.material.opacity = 0.5 + Math.sin(Date.now() * 0.008) * 0.3;
         }
-        for (let m of memoItems) {
-          if (!m.collected && m.mesh.position.distanceTo(pPos) < 2.5) { showPrompt = true; break; }
+
+        document.getElementById('interact-prompt').style.display = foundPrompt ? 'block' : 'none';
+
+        monsters.forEach(m => {
+          if (m.isStunned) {
+            m.stunTimer -= delta;
+            if (m.stunTimer <= 0) m.isStunned = false;
+            return;
+          }
+
+          let mSpeed = m.baseSpeed * diffParams.speedMult;
+          if (currentLevel === 2) mSpeed *= 1.25;
+
+          const toPlayer = new THREE.Vector3().subVectors(player.position, m.pos);
+          const dist = toPlayer.length();
+
+          let detectDist = (m.isFast ? 35 : 25) * diffParams.detectMult;
+          if (currentLevel === 2) detectDist *= 1.3;
+
+          if (dist < detectDist) {
+            toPlayer.y = 0; toPlayer.normalize();
+            m.pos.addScaledVector(toPlayer, mSpeed * delta);
+            m.group.lookAt(player.position.x, m.pos.y, player.position.z);
+
+            if (dist < 10 && Math.random() < 0.02) {
+              audio.playHeartbeat();
+            }
+          }
+
+          if (dist < 2.5) {
+            triggerGameOver();
+          }
+        });
+
+        if (revealEnemiesTimer > 0) {
+          revealEnemiesTimer -= delta;
         }
-        if (pPos.distanceTo(toriiPosition) < 3.0) { showPrompt = true; }
 
-        document.getElementById('interact-prompt').style.display = showPrompt ? 'block' : 'none';
-
-        drawMinimap();
+        updateMinimap();
       }
 
       renderer.render(scene, camera);
     }
 
     animate();
-
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
   </script>
 </body>
 </html>
